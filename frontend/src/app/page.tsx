@@ -3,13 +3,13 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { 
-  Globe, 
-  Target, 
-  Brain, 
-  TrendingUp, 
-  Play, 
-  ChevronDown, 
+import {
+  Globe,
+  Target,
+  Brain,
+  TrendingUp,
+  Play,
+  ChevronDown,
   ArrowRight,
   Menu,
   X
@@ -33,7 +33,7 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-black text-white font-sans overflow-x-hidden selection:bg-sky-500/30 selection:text-sky-200">
-      
+
       {/* Background Grid & Ambient Glows */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30 pointer-events-none" />
       <div className="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
@@ -41,7 +41,7 @@ export default function Home() {
 
       {/* Navigation Header */}
       <header className="relative z-50 max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-        
+
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform">
@@ -95,8 +95,8 @@ export default function Home() {
           <Link href="/dashboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
             Login
           </Link>
-          <Link 
-            href="#" 
+          <Link
+            href="#"
             className="relative inline-flex items-center justify-center px-6 py-2.5 rounded-full text-sm font-bold text-white bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 shadow-md shadow-sky-500/10 hover:shadow-sky-500/20 active:scale-95 transition-all group overflow-hidden"
           >
             <span>Book a Demo</span>
@@ -105,7 +105,7 @@ export default function Home() {
         </div>
 
         {/* Mobile menu toggle */}
-        <button 
+        <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-zinc-900 transition-colors"
         >
@@ -134,10 +134,10 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative max-w-7xl mx-auto px-6 pt-10 pb-20 lg:pt-16 lg:pb-28 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-6 items-center">
-        
+
         {/* Left Column (Hero Content) */}
         <div className="lg:col-span-5 flex flex-col items-start gap-8 z-10">
-          
+
           {/* Badge */}
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-sky-500/20 bg-sky-500/5 text-[10px] font-bold tracking-wider text-sky-400 uppercase shadow-inner shadow-sky-500/5">
             <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
@@ -160,15 +160,15 @@ export default function Home() {
 
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-6">
-            <Link 
-              href="/dashboard" 
+            <Link
+              href="/dashboard"
               className="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-bold text-white bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 shadow-xl shadow-sky-500/10 hover:shadow-sky-500/20 transition-all group"
             >
               <span>Explore Platform</span>
               <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Link>
-            
-            <button className="flex items-center gap-3.5 group cursor-pointer text-left">
+
+            {/* <button className="flex items-center gap-3.5 group cursor-pointer text-left">
               <div className="w-12 h-12 rounded-full border border-zinc-800 flex items-center justify-center group-hover:border-sky-500 group-hover:bg-sky-500/5 transition-all">
                 <Play size={16} fill="white" className="text-white ml-0.5" />
               </div>
@@ -176,7 +176,7 @@ export default function Home() {
                 <div className="text-sm font-semibold text-white group-hover:text-sky-400 transition-colors">Watch Demo</div>
                 <div className="text-xs text-gray-500">2 min overview</div>
               </div>
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -189,7 +189,7 @@ export default function Home() {
       {/* Feature Icons Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-xl">
-          
+
           {/* Feature 1 */}
           <div className="flex items-center gap-4 p-4 rounded-xl hover:bg-zinc-900/40 transition-colors group">
             <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 group-hover:scale-105 transition-transform">
@@ -241,7 +241,7 @@ export default function Home() {
         <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500 mb-10">
           Trusted By Leading Travel Companies
         </h2>
-        
+
         <div className="flex flex-wrap items-center justify-center gap-12 md:gap-16 opacity-60">
           {/* Aitken Spence Travels */}
           <div className="flex flex-col items-center">
