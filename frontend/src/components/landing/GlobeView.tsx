@@ -32,38 +32,47 @@ function slerp(lat1: number, lng1: number, lat2: number, lng2: number, t: number
   return { lat: Math.asin(z) / D, lng: Math.atan2(y, x) / D };
 }
 
-// ── 3D Jet Airplane Mesh Constructor ──────────────────────────────────────
+// ── 3D Jet Airplane Mesh Constructor (Origin at tail) ─────────────────────
 function createAirplane(THREE: any) {
   const planeGroup = new THREE.Group();
 
   // Sleek metallic silver fuselage & wings
   const metallicMat = new THREE.MeshStandardMaterial({
     color: 0xf3f4f6,      // light gray silver
-    metalness: 0.9,       // highly reflective metallic finish
-    roughness: 0.15,      // glossy finish to catch sunlight
+    metalness: 0.95,      // highly reflective metallic finish
+    roughness: 0.12,      // glossy finish to catch sunlight
   });
 
-  // Dark charcoal material for engine inlets and cockpit trim
+  // Dark charcoal material for engine inlets
   const engineTrimMat = new THREE.MeshStandardMaterial({
-    color: 0x1f2937,
+    color: 0x111827,
     metalness: 0.8,
-    roughness: 0.2,
+    roughness: 0.3,
   });
 
-  // 1. Fuselage
-  const bodyGeom = new THREE.CylinderGeometry(0.7, 0.45, 5.0, 12);
-  bodyGeom.rotateX(Math.PI / 2); // align nose along Z-axis
+  // Glowing orange jet exhaust thrust
+  const exhaustMat = new THREE.MeshBasicMaterial({
+    color: 0xff5500,
+  });
+
+  // Note: All components are translated +2.5 along Z to place the tail at Z=0.
+  // This aligns the trail source exactly with the plane's tail.
+
+  // 1. Fuselage (extends Z = 0 to 5.0)
+  const bodyGeom = new THREE.CylinderGeometry(0.65, 0.4, 5.0, 12);
+  bodyGeom.rotateX(Math.PI / 2);
+  bodyGeom.translate(0, 0, 2.5);
   const body = new THREE.Mesh(bodyGeom, metallicMat);
   planeGroup.add(body);
 
-  // 2. Nose Cone
-  const noseGeom = new THREE.ConeGeometry(0.7, 1.6, 12);
+  // 2. Nose Cone (extends Z = 5.0 to 6.6)
+  const noseGeom = new THREE.ConeGeometry(0.65, 1.6, 12);
   noseGeom.rotateX(Math.PI / 2);
-  noseGeom.translate(0, 0, 2.5); // align base at front of cylinder
+  noseGeom.translate(0, 0, 5.8);
   const nose = new THREE.Mesh(noseGeom, metallicMat);
   planeGroup.add(nose);
 
-  // 3. Swept-back Wings
+  // 3. Swept-back Wings (centered around Z = 3.0)
   const wingShape = new THREE.Shape();
   wingShape.moveTo(0, 0);
   wingShape.lineTo(3.4, -1.6);
@@ -78,15 +87,15 @@ function createAirplane(THREE: any) {
     bevelEnabled: false,
   });
   wingExtrude.rotateX(Math.PI / 2);
-  wingExtrude.translate(0, -0.15, 0.4); // position slightly below fuselage centerline
+  wingExtrude.translate(0, -0.15, 3.2); // wing placement shifted forward
   const wings = new THREE.Mesh(wingExtrude, metallicMat);
   planeGroup.add(wings);
 
-  // 4. Vertical Tail Fin
+  // 4. Vertical Tail Fin (placed at Z = 0.4)
   const finShape = new THREE.Shape();
   finShape.moveTo(0, 0);
-  finShape.lineTo(0, 1.2);
-  finShape.lineTo(-0.7, 1.0);
+  finShape.lineTo(0, 1.25);
+  finShape.lineTo(-0.75, 1.0);
   finShape.lineTo(-0.9, 0);
   finShape.lineTo(0, 0);
 
@@ -95,18 +104,18 @@ function createAirplane(THREE: any) {
     bevelEnabled: false,
   });
   finExtrude.rotateY(Math.PI / 2);
-  finExtrude.translate(0, 0.15, -2.1); // sit on top at back
+  finExtrude.translate(0, 0.15, 0.4);
   const fin = new THREE.Mesh(finExtrude, metallicMat);
   planeGroup.add(fin);
 
-  // 5. Horizontal Stabilizers
+  // 5. Horizontal Stabilizers (placed at Z = 0.3)
   const stabShape = new THREE.Shape();
   stabShape.moveTo(0, 0);
-  stabShape.lineTo(1.1, -0.4);
-  stabShape.lineTo(0.9, -0.7);
+  stabShape.lineTo(1.15, -0.4);
+  stabShape.lineTo(0.95, -0.7);
   stabShape.lineTo(0, -0.2);
-  stabShape.lineTo(-0.9, -0.7);
-  stabShape.lineTo(-1.1, -0.4);
+  stabShape.lineTo(-0.95, -0.7);
+  stabShape.lineTo(-1.15, -0.4);
   stabShape.lineTo(0, 0);
 
   const stabExtrude = new THREE.ExtrudeGeometry(stabShape, {
@@ -114,19 +123,28 @@ function createAirplane(THREE: any) {
     bevelEnabled: false,
   });
   stabExtrude.rotateX(Math.PI / 2);
-  stabExtrude.translate(0, 0, -2.2);
+  stabExtrude.translate(0, 0, 0.3);
   const stabilizers = new THREE.Mesh(stabExtrude, metallicMat);
   planeGroup.add(stabilizers);
 
   // 6. Under-wing Jet Engines
-  const engineGeom = new THREE.CylinderGeometry(0.28, 0.22, 1.1, 8);
+  const engineGeom = new THREE.CylinderGeometry(0.26, 0.2, 1.1, 8);
   engineGeom.rotateX(Math.PI / 2);
   const leftEngine = new THREE.Mesh(engineGeom, engineTrimMat);
-  leftEngine.position.set(1.1, -0.4, 0.25);
+  leftEngine.position.set(1.15, -0.45, 2.9);
   const rightEngine = new THREE.Mesh(engineGeom, engineTrimMat);
-  rightEngine.position.set(-1.1, -0.4, 0.25);
+  rightEngine.position.set(-1.15, -0.45, 2.9);
   planeGroup.add(leftEngine);
   planeGroup.add(rightEngine);
+
+  // 7. Engine exhaust glows (thrust fire)
+  const exhaustGeom = new THREE.SphereGeometry(0.14, 6, 6);
+  const leftExhaust = new THREE.Mesh(exhaustGeom, exhaustMat);
+  leftExhaust.position.set(1.15, -0.45, 2.3);
+  const rightExhaust = new THREE.Mesh(exhaustGeom, exhaustMat);
+  rightExhaust.position.set(-1.15, -0.45, 2.3);
+  planeGroup.add(leftExhaust);
+  planeGroup.add(rightExhaust);
 
   // Scale down airplane so it sits beautifully on a 100-radius globe
   planeGroup.scale.set(0.65, 0.65, 0.65);
@@ -195,27 +213,23 @@ export default function GlobeView() {
         .ringMaxRadius((d: any) => d.maxR)
         .ringPropagationSpeed((d: any) => d.speed)
         .ringRepeatPeriod((d: any) => d.period)
-        // Arcs config
-        .arcsData([])
-        .arcColor((d: any) => {
-          // Color fading/gradient logic based on opacity
+        // Paths config (glowing 3D flight corridor trail)
+        .pathsData([])
+        .pathPoints((d: any) => d.points)
+        .pathPointLat((d: any) => d[0])
+        .pathPointLng((d: any) => d[1])
+        .pathPointAlt((d: any) => d[2])
+        .pathColor((d: any) => {
           const op = d.opacity !== undefined ? d.opacity : 1.0;
-          const c1 = d.color[0];
-          const c2 = d.color[1];
-          const hexToRgba = (hex: string, a: number) => {
-            const r = parseInt(hex.slice(1,3), 16);
-            const g = parseInt(hex.slice(3,5), 16);
-            const b = parseInt(hex.slice(5,7), 16);
-            return `rgba(${r},${g},${b},${a})`;
-          };
-          return [hexToRgba(c1, op), hexToRgba(c2, op)];
+          const c = d.color;
+          const r = parseInt(c.slice(1,3), 16);
+          const g = parseInt(c.slice(3,5), 16);
+          const b = parseInt(c.slice(5,7), 16);
+          return `rgba(${r},${g},${b},${op * 0.75})`;
         })
-        .arcDashLength(1)
-        .arcDashGap(0)
-        .arcDashAnimateTime(0)
-        .arcStroke(1.6)
-        .arcAltitudeAutoScale(0.38)
-        .arcsTransitionDuration(0) // Prevent transition delays during frame updates
+        .pathStroke(0.6) // Sleek, non-cartoonish path width
+        .pathResolution(12) // smooth 3D tube geometry
+        .pathTransitionDuration(0)
         // HTML markers (Huge clickable overlays & custom tooltips)
         .htmlElementsData(MARKETS)
         .htmlElement((d: any) => {
@@ -305,25 +319,24 @@ export default function GlobeView() {
       globeRef.current = G;
 
       // ── Flight launcher ─────────────────────────────────────────────────────
-      const FLIGHT_MS = 2600;
+      const FLIGHT_MS = 2800;
       const FADE_MS = 800;
 
       function launchFlight(target: typeof MARKETS[0]) {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         controls.autoRotate = false;
 
-        // Initialize arc path
-        const arc: any = {
-          startLat: SRI_LANKA.lat, startLng: SRI_LANKA.lng,
-          endLat: SRI_LANKA.lat, endLng: SRI_LANKA.lng,
-          color: ["#f59e0b", target.color],
+        // Initialize 3D path data (tapered origin)
+        const path: any = {
+          points: [[SRI_LANKA.lat, SRI_LANKA.lng, 0.01]],
+          color: target.color,
           opacity: 1.0,
         };
-        G.arcsData([arc]);
+        G.pathsData([path]);
 
         // Reveal and position airplane at origin
         airplane.visible = true;
-        const startCoords = G.getCoords(SRI_LANKA.lat, SRI_LANKA.lng, 0.04);
+        const startCoords = G.getCoords(SRI_LANKA.lat, SRI_LANKA.lng, 0.01);
         airplane.position.set(startCoords.x, startCoords.y, startCoords.z);
 
         // Smooth camera pan to midpoint
@@ -336,21 +349,31 @@ export default function GlobeView() {
         function tick(now: number) {
           const t = Math.min((now - startTime) / FLIGHT_MS, 1);
           const pos = slerp(SRI_LANKA.lat, SRI_LANKA.lng, target.lat, target.lng, t);
+          // 3D parabola height profile peaking at 0.16 globe radius
+          const alt = Math.sin(t * Math.PI) * 0.16 + 0.01;
 
-          // Grow arc trail progressively behind the airplane
-          arc.endLat = pos.lat;
-          arc.endLng = pos.lng;
-          G.arcsData([arc]);
+          // Generate 3D path coordinates leading up to current t
+          const pts = [];
+          const segments = Math.max(2, Math.ceil(t * 60));
+          for (let i = 0; i <= segments; i++) {
+            const currT = (i / segments) * t;
+            const p = slerp(SRI_LANKA.lat, SRI_LANKA.lng, target.lat, target.lng, currT);
+            const a = Math.sin(currT * Math.PI) * 0.16 + 0.01;
+            pts.push([p.lat, p.lng, a]);
+          }
 
-          // Position and orient 3D airplane
-          const alt = 0.04;
+          path.points = pts;
+          G.pathsData([path]);
+
+          // Position 3D airplane at the very end of the path
           const coords = G.getCoords(pos.lat, pos.lng, alt);
           airplane.position.set(coords.x, coords.y, coords.z);
 
           // Rotate nose toward the next step on the flight path
           const nextT = Math.min(t + 0.015, 1);
           const nextPos = slerp(SRI_LANKA.lat, SRI_LANKA.lng, target.lat, target.lng, nextT);
-          const nextCoords = G.getCoords(nextPos.lat, nextPos.lng, alt);
+          const nextAlt = Math.sin(nextT * Math.PI) * 0.16 + 0.01;
+          const nextCoords = G.getCoords(nextPos.lat, nextPos.lng, nextAlt);
           const nextPos3 = new THREE.Vector3(nextCoords.x, nextCoords.y, nextCoords.z);
 
           // Align wings flat to surface, point nose forward
@@ -361,20 +384,20 @@ export default function GlobeView() {
           if (t < 1) {
             rafRef.current = requestAnimationFrame(tick);
           } else {
-            // Arrival: Hide airplane and trigger arc dissolving fade-out
+            // Arrival: Hide airplane and trigger path dissolving fade-out
             airplane.visible = false;
             const fadeStart = performance.now();
 
             function fadeTick(nowFade: number) {
               const ft = Math.min((nowFade - fadeStart) / FADE_MS, 1);
-              arc.opacity = 1.0 - ft;
-              G.arcsData([arc]);
+              path.opacity = 1.0 - ft;
+              G.pathsData([path]);
 
               if (ft < 1) {
                 rafRef.current = requestAnimationFrame(fadeTick);
               } else {
                 // Done: Reset globe to default viewpoint
-                G.arcsData([]);
+                G.pathsData([]);
                 controls.autoRotate = true;
                 G.pointOfView({ lat: 20, lng: 70, altitude: 1.85 }, 1000);
               }
