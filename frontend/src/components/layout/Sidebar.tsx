@@ -1,0 +1,85 @@
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { 
+  LayoutDashboard, 
+  FolderHeart, 
+  BarChart3, 
+  Settings, 
+  HelpCircle,
+  LogOut,
+  ShieldCheck
+} from "lucide-react";
+
+export default function Sidebar() {
+  const pathname = usePathname();
+
+  const menuItems = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "My Packages", href: "/packages/new", icon: FolderHeart },
+    { name: "Settings", href: "/settings", icon: Settings },
+  ];
+
+  return (
+    <aside className="w-64 border-r border-zinc-900 bg-black flex flex-col justify-between p-6">
+      <div className="flex flex-col gap-8">
+        
+        {/* Brand Card */}
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-white text-sm">
+            CT
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-white">CompetiTour</span>
+            <span className="text-[9px] text-gray-500 uppercase tracking-widest font-semibold">ZeroTrace · DMC</span>
+          </div>
+        </Link>
+
+        {/* Navigation Menu */}
+        <nav className="flex flex-col gap-1.5">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                  isActive
+                    ? "bg-sky-500/10 border border-sky-500/20 text-sky-400"
+                    : "border border-transparent text-gray-400 hover:text-white hover:bg-zinc-900/40"
+                }`}
+              >
+                <Icon size={18} className={isActive ? "text-sky-400" : "text-gray-400 group-hover:text-white transition-colors"} />
+                <span>{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Footer Info / Logout Mock */}
+      <div className="flex flex-col gap-4">
+        <div className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-sky-500/10 flex items-center justify-center text-sky-400">
+            <ShieldCheck size={16} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-white">Proxy Secured</span>
+            <span className="text-[9px] text-gray-500">Torch Labs ISP</span>
+          </div>
+        </div>
+
+        <Link 
+          href="/"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:text-red-400 hover:bg-red-500/5 transition-all"
+        >
+          <LogOut size={18} />
+          <span>Exit System</span>
+        </Link>
+      </div>
+    </aside>
+  );
+}

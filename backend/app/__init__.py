@@ -1,0 +1,1 @@
+"""CompetiTour Backend Application."""
