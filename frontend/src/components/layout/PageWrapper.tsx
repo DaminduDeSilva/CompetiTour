@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import Sidebar from "./Sidebar";
-import TopBar from "./TopBar";
+import Sidebar from "@/components/layout/Sidebar";
+import TopBar from "@/components/layout/TopBar";
 
 interface PageWrapperProps {
   children: React.ReactNode;

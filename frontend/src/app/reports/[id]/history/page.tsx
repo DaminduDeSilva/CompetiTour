@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import PageWrapper from "../../../../components/layout/PageWrapper";
+import PageWrapper from "@/components/layout/PageWrapper";
 import { 
   ArrowLeft, 
   Download, 
@@ -31,11 +31,11 @@ export default function ReportHistoryPage() {
       type: "hotel",
       name: "Cinnamon Wild Yala",
       details: "3 Nights - Deluxe Room",
-      yourCostEur: 1350,
+      yourCostEur: 1850,
       scrapedName: "Cinnamon Wild (Yala Park) - Superior Room",
       scrapedPlatform: "Agoda",
-      scrapedCostEur: 1420,
-      delta: -4.9,
+      scrapedCostEur: 2100,
+      delta: -11.9,
       confidence: 98.4,
       method: "LLM Verified"
     },
@@ -44,11 +44,11 @@ export default function ReportHistoryPage() {
       type: "excursion",
       name: "Yala National Park Safari",
       details: "Half-Day Private Jeep Tour",
-      yourCostEur: 360,
+      yourCostEur: 410,
       scrapedName: "Yala National Park Jeep Excursion (Private)",
       scrapedPlatform: "Viator",
-      scrapedCostEur: 410,
-      delta: -12.2,
+      scrapedCostEur: 510,
+      delta: -19.6,
       confidence: 94.1,
       method: "Cosine Similarity"
     },
@@ -57,11 +57,11 @@ export default function ReportHistoryPage() {
       type: "hotel",
       name: "Cape Weligama",
       details: "4 Nights - Ocean Villa",
-      yourCostEur: 2050,
+      yourCostEur: 3100,
       scrapedName: "Cape Weligama Resort - Premier Ocean Villa",
       scrapedPlatform: "Booking.com",
-      scrapedCostEur: 2900,
-      delta: -29.3,
+      scrapedCostEur: 4120,
+      delta: -24.8,
       confidence: 97.2,
       method: "LLM Verified"
     },
@@ -72,9 +72,9 @@ export default function ReportHistoryPage() {
       details: "Private Premium Van",
       yourCostEur: 300,
       scrapedName: "Colombo/Yala/Weligama Private Luxury Chauffeur",
-      scrapedPlatform: "Local Agency",
-      scrapedCostEur: 380,
-      delta: -21.0,
+      scrapedPlatform: "Expedia",
+      scrapedCostEur: 390,
+      delta: -23.1,
       confidence: 88.5,
       method: "Rule Matched"
     }
@@ -99,7 +99,7 @@ export default function ReportHistoryPage() {
         <div className="flex items-center gap-3">
           <button 
             onClick={() => alert("PDF report generation complete. Downloading report...")}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-2 rounded-xl transition-all"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-2 rounded-xl transition-all animate-none"
           >
             <Download size={14} />
             <span>Export PDF</span>
@@ -107,22 +107,33 @@ export default function ReportHistoryPage() {
         </div>
       </div>
 
-      {/* Main Alert Card: Optimization recommendation */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Package Identifier Header (Issue #3) */}
+      <div className="mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+            Audit Result
+          </span>
+          <h2 className="text-xl font-bold text-white mt-1">Adventure & Wildlife Safari - 12 Days</h2>
+          <p className="text-xs text-gray-500 mt-0.5">DMC Base Price: LKR 1,850,000 (approx. €5,660)</p>
+        </div>
+      </div>
+
+      {/* Main Alert Card: Optimization recommendations reframed (Issue #1) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-6">
         
         {/* Left Section: Match Breakdown */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           
-          {/* Card: Recommendations */}
+          {/* Card: Pricing Gap & Margin Simulation */}
           <div className="p-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 backdrop-blur-md flex flex-col gap-4">
             <div className="flex items-start gap-4">
               <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
                 <BrainCircuit size={20} />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-bold text-white">AI Margin Optimization Recommendation</h3>
+                <h3 className="text-sm font-bold text-white">AI Pricing Gap & Margin Analysis</h3>
                 <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  Your DMC package is currently underpriced by <strong className="text-blue-400">{Math.abs(totalDeltaPct)}%</strong> compared to the lowest public price on Booking.com and Agoda in Germany. You can increase your price to capture more margin while remaining competitive.
+                  Your DMC package is currently priced at a <strong className="text-blue-400">{Math.abs(totalDeltaPct)}% gap</strong> under the lowest public price on Booking.com and Agoda in Germany. This analysis identifies margins that can be adjusted manually while remaining below public retail aggregates.
                 </p>
               </div>
             </div>
@@ -140,7 +151,7 @@ export default function ReportHistoryPage() {
                   <span className="text-sm font-black text-white">€{totalScrapedEur.toLocaleString()}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-500 uppercase font-semibold">Target Price Margin Opportunity</span>
+                  <span className="text-[10px] text-gray-500 uppercase font-semibold">Pricing Gap Opportunity</span>
                   <span className="text-sm font-black text-emerald-400">+€{Math.round((totalScrapedEur * 0.9 - totalDmcEur))} (at 10% discount)</span>
                 </div>
               </div>
@@ -150,11 +161,11 @@ export default function ReportHistoryPage() {
                   onClick={() => setMarkupApplied(true)}
                   className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-sky-400 text-xs font-bold text-black transition-all cursor-pointer"
                 >
-                  Apply Optimized Markup
+                  Simulate Target Price Adjustment
                 </button>
               ) : (
                 <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl">
-                  <CheckCircle size={14} /> Markup Applied
+                  <CheckCircle size={14} /> Target Price Simulated
                 </span>
               )}
             </div>
@@ -266,6 +277,58 @@ export default function ReportHistoryPage() {
               We leverage Torch Labs residential proxies to bypass OTA geofencing and anti-bot systems, ensuring the German market rates are identical to what travelers see from their browsers in Frankfurt.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Card: Historical Audit Logs */}
+      <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6 mt-8">
+        <div>
+          <h3 className="text-sm font-bold text-white">Historical Audit Logs</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Timeline of past proxy scrapes and pricing snapshots for this package</p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-zinc-900 text-gray-400 text-[10px] font-bold uppercase tracking-wider">
+                <th className="pb-3">Audit Date / Time</th>
+                <th className="pb-3">Target Market</th>
+                <th className="pb-3">DMC Rate</th>
+                <th className="pb-3">Market Price</th>
+                <th className="pb-3">Variance</th>
+                <th className="pb-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-900 text-xs text-gray-300">
+              {[
+                { date: "June 20, 2026 14:32", market: "Germany (DE) 🇩🇪", dmc: "€5,660", marketPrice: "€7,120", variance: "-20.5%", status: "leakage" },
+                { date: "June 12, 2026 09:15", market: "United Kingdom (GB) 🇬🇧", dmc: "€5,660", marketPrice: "€7,290", variance: "-22.4%", status: "leakage" },
+                { date: "May 28, 2026 16:45", market: "Australia (AU) 🇦🇺", dmc: "€5,660", marketPrice: "€7,670", variance: "-26.2%", status: "leakage" },
+              ].map((run, idx) => (
+                <tr key={idx} className="hover:bg-zinc-900/10 transition-colors">
+                  <td className="py-3.5 font-medium text-white">{run.date}</td>
+                  <td className="py-3.5">{run.market}</td>
+                  <td className="py-3.5">{run.dmc}</td>
+                  <td className="py-3.5 font-semibold text-white">{run.marketPrice}</td>
+                  <td className="py-3.5">
+                    <span className={`font-bold ${
+                      run.status === "leakage" ? "text-blue-400" : run.status === "at_risk" ? "text-yellow-400" : "text-emerald-400"
+                    }`}>
+                      {run.variance}
+                    </span>
+                  </td>
+                  <td className="py-3.5 text-right">
+                    <button 
+                      onClick={() => alert(`Restored audit snapshot from ${run.date} for comparison.`)}
+                      className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-[10px] font-bold text-gray-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      View Snapshot
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </PageWrapper>

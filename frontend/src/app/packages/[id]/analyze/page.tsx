@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import PageWrapper from "../../../../components/layout/PageWrapper";
+import PageWrapper from "@/components/layout/PageWrapper";
 import { 
   CheckCircle2, 
   Loader2, 
@@ -33,13 +33,13 @@ export default function AnalyzePage() {
     {
       id: 1,
       label: "Establish Geotargeted Proxy Session",
-      sublabel: "Initializing Torch Labs residential proxy in Frankfurt, Germany",
+      sublabel: "Initializing dual-proxy sessions (Premium Residential & ISP) in Frankfurt, DE",
       status: "running",
       logs: [
-        "[09:30:01] Connecting to Torch Labs gateway: geox.torchproxies.com:6011",
-        "[09:30:02] Authenticating sub-user session zero_trace_de...",
-        "[09:30:03] Session established. Exit IP: 46.112.88.24 (Frankfurt, DE - Deutsche Telekom)",
-        "[09:30:04] Latency check: 45ms. Headers verification: PASSED."
+        "[09:30:01] Establishing Connection 1: Premium Residential Proxy (for anti-bot evasion)...",
+        "[09:30:02] Establishing Connection 2: ISP Proxy (for stable sticky session orchestration)...",
+        "[09:30:03] Session 1 Exit IP: 46.112.88.24 (Frankfurt, DE - Deutsche Telekom)",
+        "[09:30:04] Session 2 Exit IP: 109.250.4.12 (Frankfurt, DE - Vodafone Germany)"
       ]
     },
     {
@@ -48,13 +48,13 @@ export default function AnalyzePage() {
       sublabel: "Scraping hotel availability and standard night pricing via Playwright",
       status: "pending",
       logs: [
-        "[09:30:05] Launching headless chromium worker...",
-        "[09:30:06] Applying stealth fingerprint bypass models...",
+        "[09:30:05] Routing initial search queries through Premium Residential proxy...",
+        "[09:30:06] Applying stealth fingerprint bypass models to Booking.com and Agoda...",
         "[09:30:08] GET https://www.booking.com/searchresults.html?ss=Yala+National+Park - Status: 200",
-        "[09:30:10] Extracted 12 hotel listing items. Parsing elements...",
-        "[09:30:11] Target hotel: Cinnamon Wild Yala - found match on Booking.com (€420/night)",
+        "[09:30:10] Extracting listing items. Switching to ISP proxy for sticky detail parsing...",
+        "[09:30:11] Target hotel: Cinnamon Wild Yala - found match on Booking.com (€2,100/3 Nights)",
         "[09:30:12] GET https://www.agoda.com/search?q=Cinnamon+Wild+Yala - Status: 200",
-        "[09:30:13] Extracted 8 hotel listings. Room rate: Deluxe (€410/night)"
+        "[09:30:13] Extracted Agoda room rate: Deluxe (€2,100/3 Nights)"
       ]
     },
     {
@@ -72,13 +72,13 @@ export default function AnalyzePage() {
     },
     {
       id: 4,
-      label: "AI Equivalence Verification (Claude 3.5)",
+      label: "AI Equivalence Verification (Claude)",
       sublabel: "Running structural room-type and cancellation policy matching validation",
       status: "pending",
       logs: [
-        "[09:30:19] Invoking Claude 3.5 (haiku model) agent...",
+        "[09:30:19] Invoking Claude LLM validation agent...",
         "[09:30:20] Prompt tokens: 1,420. Max tokens: 150.",
-        "[09:30:21] Claude analysis: 'Deluxe Room' and 'Superior Room' at Cinnamon Wild Yala represent equivalent tiers. Breakfast: Included. Free cancellation policy: MATCHED.",
+        "[09:30:21] LLM analysis: 'Deluxe Room' and 'Superior Room' at Cinnamon Wild Yala represent equivalent tiers. Breakfast: Included. Free cancellation policy: MATCHED.",
         "[09:30:22] Match verified. Confidence rating: 98.4%."
       ]
     },
@@ -90,8 +90,8 @@ export default function AnalyzePage() {
       logs: [
         "[09:30:23] Normalizing currency rates: EUR to LKR (Rate: 326.50)",
         "[09:30:24] Calculating cost components difference...",
-        "[09:30:25] Package sum-of-parts in Germany: €4,420. Your price: €4,100.",
-        "[09:30:26] Compiling PDF report artifact...",
+        "[09:30:25] Package sum-of-parts in Germany: €7,120. Your price: €5,660.",
+        "[09:30:26] Pricing Gap (Margin Leakage): -20.5%",
         "[09:30:27] Saving snapshot to database competitiveness_reports."
       ]
     }
@@ -150,7 +150,7 @@ export default function AnalyzePage() {
             Running Pricing Audit
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            Analyzing package #3 in target market Germany using real-time search queries
+            Analyzing package "Adventure & Wildlife Safari - 12 Days" in target market Germany using real-time search queries
           </p>
         </div>
         

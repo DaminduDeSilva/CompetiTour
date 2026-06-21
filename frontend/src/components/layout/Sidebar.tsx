@@ -1,31 +1,28 @@
 "use client";
-
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  FolderHeart, 
-  BarChart3, 
-  Settings, 
-  HelpCircle,
-  LogOut,
-  ShieldCheck
+import {
+  LayoutDashboard, FolderHeart, BarChart3, Settings, LogOut,
+  ShieldCheck, Bell, FolderOpen, ChevronRight
 } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   const menuItems = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "My Packages", href: "/packages/new", icon: FolderHeart },
-    { name: "Settings", href: "/settings", icon: Settings },
+    { name: "Dashboard",      href: "/dashboard",      icon: LayoutDashboard },
+    { name: "Packages",       href: "/packages",       icon: FolderOpen },
+    { name: "Add Package",    href: "/packages/new",   icon: FolderHeart },
+    { name: "Reports",        href: "/reports",        icon: BarChart3 },
+    { name: "Notifications",  href: "/notifications",  icon: Bell },
+    { name: "Settings",       href: "/settings",       icon: Settings },
   ];
 
   return (
     <aside className="w-64 border-r border-zinc-900 bg-black flex flex-col justify-between p-6">
       <div className="flex flex-col gap-8">
-        
+
         {/* Brand Card */}
         <Link href="/" className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-white text-sm">
@@ -41,7 +38,8 @@ export default function Sidebar() {
         <nav className="flex flex-col gap-1.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href ||
+              (item.href !== "/dashboard" && item.href !== "/packages/new" && pathname.startsWith(item.href) && item.href.length > 1);
             return (
               <Link
                 key={item.name}
@@ -53,14 +51,15 @@ export default function Sidebar() {
                 }`}
               >
                 <Icon size={18} className={isActive ? "text-sky-400" : "text-gray-400 group-hover:text-white transition-colors"} />
-                <span>{item.name}</span>
+                <span className="flex-1">{item.name}</span>
+                {isActive && <ChevronRight size={14} className="text-sky-400" />}
               </Link>
             );
           })}
         </nav>
       </div>
 
-      {/* Footer Info / Logout Mock */}
+      {/* Footer */}
       <div className="flex flex-col gap-4">
         <div className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-sky-500/10 flex items-center justify-center text-sky-400">
@@ -68,16 +67,16 @@ export default function Sidebar() {
           </div>
           <div className="flex flex-col">
             <span className="text-xs font-bold text-white">Proxy Secured</span>
-            <span className="text-[9px] text-gray-500">Torch Labs ISP</span>
+            <span className="text-[9px] text-gray-500">Torch Labs via ZeroTrace</span>
           </div>
         </div>
 
-        <Link 
-          href="/"
+        <Link
+          href="/login"
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:text-red-400 hover:bg-red-500/5 transition-all"
         >
           <LogOut size={18} />
-          <span>Exit System</span>
+          <span>Sign Out</span>
         </Link>
       </div>
     </aside>

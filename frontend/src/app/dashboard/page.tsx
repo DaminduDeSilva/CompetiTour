@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import PageWrapper from "../../components/layout/PageWrapper";
+import PageWrapper from "@/components/layout/PageWrapper";
 import { 
   FolderHeart, 
   Percent, 
@@ -50,7 +50,7 @@ const initialPackages = [
     priceUsd: 6050,
     status: "underpriced",
     markets: {
-      de: { price: 7950, delta: -23.9, status: "underpriced" },
+      de: { price: 7120, delta: -20.5, status: "underpriced" },
       gb: { price: 7800, delta: -22.4, status: "underpriced" },
       au: { price: 8200, delta: -26.2, status: "underpriced" }
     }
@@ -137,8 +137,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-white">75.0%</div>
-            <div className="text-xs text-gray-500 mt-1">3 of 4 packages optimized</div>
+            <div className="text-3xl font-black text-white">50.0%</div>
+            <div className="text-xs text-gray-500 mt-1">2 of 4 packages optimized in Germany</div>
           </div>
         </div>
 
@@ -180,7 +180,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-3xl font-black text-emerald-400">1,420</div>
-            <div className="text-xs text-gray-500 mt-1">100% success (Torch Labs ISP)</div>
+            <div className="text-xs text-gray-500 mt-1">98.4% success (Torch Labs ISP)</div>
           </div>
         </div>
       </div>
