@@ -1,10 +1,12 @@
 "use client";
 import React, { useState } from "react";
+import Link from "next/link";
 import PageWrapper from "@/components/layout/PageWrapper";
 import {
   ShieldAlert, Cpu, Settings as SettingsIcon, Save,
-  CheckCircle, KeyRound, Network, Building2, Bell, CreditCard
+  CheckCircle, KeyRound, Network, Building2, Bell, CreditCard, ArrowRight, Zap
 } from "lucide-react";
+import { CURRENT_USAGE, getCurrentPlan, getUsagePercent, formatLimit } from "@/lib/quota";
 
 const TABS = ["Workspace", "AI Matcher", "Proxy Status"] as const;
 type Tab = typeof TABS[number];
@@ -130,27 +132,67 @@ export default function SettingsPage() {
 
             {/* Right: Plan info */}
             <div className="lg:col-span-4 flex flex-col gap-4">
-              <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <CreditCard size={16} className="text-sky-400" /> Plan & Limits
-                </h3>
-                {/* TODO(backend): Fetch plan details from GET /settings/plan */}
-                <div className="flex flex-col gap-3 text-xs">
-                  {[
-                    { label: "Plan Tier",       val: "Standard",           highlight: true },
-                    { label: "Max Packages",    val: "10 packages" },
-                    { label: "Audits / Month",  val: "50 runs" },
-                    { label: "Source Markets",  val: "3 markets" },
-                    { label: "Renewal",         val: "August 1, 2026" },
-                  ].map(r => (
-                    <div key={r.label} className="flex justify-between items-center">
-                      <span className="text-gray-300">{r.label}</span>
-                      <span className={`font-bold ${r.highlight ? "text-sky-400" : "text-white"}`}>{r.val}</span>
+              {(() => {
+                const plan = getCurrentPlan();
+                const usedPct = getUsagePercent();
+                const limit = plan.auditsPerMonth;
+                const barColor = usedPct >= 95 ? "bg-red-500" : usedPct >= 80 ? "bg-amber-400" : "bg-sky-500";
+                const textColor = usedPct >= 95 ? "text-red-400" : usedPct >= 80 ? "text-amber-400" : "text-sky-400";
+                return (
+                  <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <CreditCard size={16} className="text-sky-400" /> Plan & Usage
+                      </h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+                        {plan.name}
+                      </span>
                     </div>
-                  ))}
-                </div>
-                <p className="text-[10px] text-gray-400">Plan changes are managed by ZeroTrace. Contact your account manager to upgrade.</p>
-              </div>
+
+                    {/* Usage meter */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="flex items-center gap-1 text-gray-400"><Zap size={10} className={textColor} /> Audits This Month</span>
+                        <span className={`font-black ${textColor}`}>{CURRENT_USAGE.auditsUsed}/{formatLimit(limit)}</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                          style={{ width: limit === Infinity ? "0%" : `${usedPct}%` }}
+                        />
+                      </div>
+                      {usedPct >= 80 && (
+                        <p className={`text-[10px] font-semibold ${textColor}`}>
+                          {usedPct >= 95 ? "⚠ Quota almost exhausted — upgrade now" : "⚠ Approaching your monthly limit"}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Plan details */}
+                    <div className="flex flex-col gap-2.5 text-xs border-t border-zinc-900 pt-3">
+                      {[
+                        { label: "Max Packages",   val: formatLimit(plan.packages) },
+                        { label: "Source Markets", val: formatLimit(plan.markets) },
+                        { label: "OTA Platforms",  val: `${plan.otas} platforms` },
+                        { label: "Renewal",        val: CURRENT_USAGE.billingPeriodEnd },
+                      ].map(r => (
+                        <div key={r.label} className="flex justify-between items-center">
+                          <span className="text-gray-400">{r.label}</span>
+                          <span className="font-bold text-white">{r.val}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Link
+                      href="/billing"
+                      className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 text-xs font-bold text-gray-300 hover:text-white transition-colors"
+                    >
+                      Manage Billing & Plans
+                      <ArrowRight size={13} />
+                    </Link>
+                  </div>
+                );
+              })()}
 
               <button type="submit"
                 className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-sm font-bold text-black transition-colors cursor-pointer">

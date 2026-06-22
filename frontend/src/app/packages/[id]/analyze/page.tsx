@@ -16,8 +16,12 @@ import {
   Shield,
   Plus,
   Play,
-  MapPin
+  MapPin,
+  XCircle,
+  Zap
 } from "lucide-react";
+import Link from "next/link";
+import { CURRENT_USAGE, getCurrentPlan, getAuditLimit, formatLimit, isQuotaExhausted } from "@/lib/quota";
 
 interface Step {
   id: number;
@@ -31,6 +35,7 @@ export default function AnalyzePage() {
   const router = useRouter();
   const params = useParams();
   const [isConfiguring, setIsConfiguring] = useState(true);
+  const [showQuotaGate, setShowQuotaGate] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStepId, setCurrentStepId] = useState(1);
   const [finished, setFinished] = useState(false);
@@ -266,7 +271,13 @@ export default function AnalyzePage() {
               </div>
 
               <button 
-                onClick={() => setIsConfiguring(false)}
+                onClick={() => {
+                  if (isQuotaExhausted()) {
+                    setShowQuotaGate(true);
+                  } else {
+                    setIsConfiguring(false);
+                  }
+                }}
                 className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-sm font-bold text-white shadow-xl shadow-sky-500/10 hover:shadow-sky-500/20 active:scale-95 transition-all cursor-pointer"
               >
                 <Play size={16} fill="white" />
@@ -275,6 +286,64 @@ export default function AnalyzePage() {
             </div>
           </div>
         </div>
+
+        {/* Quota Gate Modal */}
+        {showQuotaGate && (() => {
+          const plan = getCurrentPlan();
+          const limit = getAuditLimit();
+          return (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+              <div className="w-full max-w-md p-8 rounded-2xl border border-red-500/20 bg-zinc-950 shadow-2xl flex flex-col gap-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                      <XCircle size={20} className="text-red-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Audit Quota Exhausted</h3>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{plan.name} Plan Limit</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowQuotaGate(false)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
+                    <XCircle size={18} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-400">Audits used this month</span>
+                    <span className="font-bold text-red-400">{CURRENT_USAGE.auditsUsed} / {formatLimit(limit)}</span>
+                  </div>
+                  <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-red-500 rounded-full w-full" />
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    You have used all <strong className="text-white">{formatLimit(limit)} audits</strong> allocated to your <strong className="text-white">{plan.name}</strong> plan this billing cycle. Upgrade to continue running audits.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 pt-2 border-t border-zinc-800">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <Zap size={12} className="text-indigo-400" />
+                    <span>Professional plan: <strong className="text-white">50 audits/month</strong> — $149/mo</span>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowQuotaGate(false)} className="flex-1 py-2.5 rounded-xl border border-zinc-800 text-xs font-bold text-gray-400 hover:text-white transition-colors cursor-pointer">
+                      Cancel
+                    </button>
+                    <Link
+                      href="/billing"
+                      className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-xs font-bold text-white transition-all"
+                    >
+                      View Plans
+                      <ArrowRight size={13} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </PageWrapper>
     );
   }

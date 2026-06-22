@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Radio, CloudLightning, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { Bell, Radio, CloudLightning, TrendingDown, AlertTriangle, CheckCircle, Zap } from "lucide-react";
+import { CURRENT_USAGE, getCurrentPlan, getUsagePercent, formatLimit } from "@/lib/quota";
 
 // TODO(backend): Fetch from GET /notifications?limit=5&unread=true
 const previewNotifications = [
@@ -23,6 +24,12 @@ export default function TopBar() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const unread = previewNotifications.filter(n => !n.read).length;
+
+  const plan = getCurrentPlan();
+  const usedPct = getUsagePercent();
+  const limit = plan.auditsPerMonth;
+  const meterColor = usedPct >= 95 ? "bg-red-500" : usedPct >= 80 ? "bg-amber-400" : "bg-sky-500";
+  const textColor = usedPct >= 95 ? "text-red-400" : usedPct >= 80 ? "text-amber-400" : "text-sky-400";
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -52,8 +59,30 @@ export default function TopBar() {
         </div>
       </div>
 
-      {/* Right: Notifications + user card */}
+      {/* Right: Usage Meter + Notifications + user card */}
       <div className="flex items-center gap-4">
+
+        {/* Audit Quota Pill */}
+        <Link
+          href="/billing"
+          className="hidden md:flex flex-col gap-1.5 px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950/60 hover:border-zinc-700 transition-colors group min-w-[140px]"
+        >
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400 group-hover:text-white transition-colors">
+              <Zap size={10} className={textColor} />
+              Audits This Month
+            </span>
+            <span className={`text-[10px] font-black ${textColor}`}>
+              {CURRENT_USAGE.auditsUsed}/{formatLimit(limit)}
+            </span>
+          </div>
+          <div className="w-full h-1 rounded-full bg-zinc-800 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${meterColor}`}
+              style={{ width: limit === Infinity ? "0%" : `${usedPct}%` }}
+            />
+          </div>
+        </Link>
 
         {/* Notification Bell with Dropdown */}
         <div ref={ref} className="relative">

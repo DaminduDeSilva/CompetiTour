@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FolderHeart, BarChart3, Settings, LogOut,
-  ShieldCheck, Bell, FolderOpen, ChevronRight
+  ShieldCheck, Bell, FolderOpen, ChevronRight, CreditCard
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -17,6 +17,7 @@ export default function Sidebar() {
     { name: "Add Package", href: "/packages/new", icon: FolderHeart },
     { name: "Reports", href: "/reports", icon: BarChart3 },
     { name: "Notifications", href: "/notifications", icon: Bell },
+    { name: "Billing", href: "/billing", icon: CreditCard },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
