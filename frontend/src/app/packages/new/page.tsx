@@ -235,79 +235,6 @@ export default function NewPackagePage() {
               ))}
             </div>
           </div>
-
-          {/* Card 3: Audit Engine Options */}
-          <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Plus size={16} className="text-sky-400" />
-              Audit Configuration & Proxy Profile
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Target Source Markets */}
-              <div className="flex flex-col gap-3">
-                <label className="text-xs font-semibold text-gray-400">Target Source Markets</label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {[
-                    { code: "DE", name: "Germany", flag: "🇩🇪", checked: true },
-                    { code: "GB", name: "United Kingdom", flag: "🇬🇧", checked: true },
-                    { code: "AU", name: "Australia", flag: "🇦🇺", checked: true },
-                    { code: "FR", name: "France", flag: "🇫🇷", checked: false },
-                    { code: "US", name: "United States", flag: "🇺🇸", checked: false },
-                    { code: "JP", name: "Japan", flag: "🇯🇵", checked: false },
-                  ].map((m) => (
-                    <label key={m.code} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-900/10 cursor-pointer hover:border-zinc-700 transition-colors">
-                      <input 
-                        type="checkbox" 
-                        defaultChecked={m.checked}
-                        className="rounded border-zinc-700 bg-zinc-950 text-sky-500 focus:ring-sky-500/20"
-                      />
-                      <span className="text-xs text-gray-300 flex items-center gap-1.5">
-                        <span>{m.flag}</span> {m.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* OTA Platforms & Proxy Type */}
-              <div className="flex flex-col gap-6">
-                {/* OTAs */}
-                <div className="flex flex-col gap-3">
-                  <label className="text-xs font-semibold text-gray-400">OTA Platforms to Audit</label>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {[
-                      { id: "booking", name: "Booking.com", checked: true },
-                      { id: "agoda", name: "Agoda", checked: true },
-                      { id: "expedia", name: "Expedia", checked: false },
-                      { id: "viator", name: "Viator", checked: true },
-                    ].map((platform) => (
-                      <label key={platform.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-900/10 cursor-pointer hover:border-zinc-700 transition-colors">
-                        <input 
-                          type="checkbox" 
-                          defaultChecked={platform.checked}
-                          className="rounded border-zinc-700 bg-zinc-950 text-sky-500 focus:ring-sky-500/20"
-                        />
-                        <span className="text-xs text-gray-300">{platform.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Proxy Product Category */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-gray-400">Proxy Product Category</label>
-                  <select 
-                    defaultValue="premium_residential"
-                    className="w-full px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-950 text-xs focus:border-sky-500 focus:outline-none text-white font-medium appearance-none"
-                  >
-                    <option value="premium_residential">Premium Residential Proxies (Anti-bot Bypass)</option>
-                    <option value="isp">ISP Proxies (Stable Sticky Sessions)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right Summary: Review & Run */}
@@ -325,10 +252,6 @@ export default function NewPackagePage() {
                 <span>Stack Count</span>
                 <span className="text-white font-bold">{components.length} Components</span>
               </div>
-              <div className="flex justify-between">
-                <span>Target Markets</span>
-                <span className="text-emerald-400 font-bold">DE, GB, AU</span>
-              </div>
               <span className="h-px bg-zinc-800" />
               <div className="flex justify-between text-sm">
                 <span className="text-white font-bold">Sum of Parts</span>
@@ -343,7 +266,7 @@ export default function NewPackagePage() {
               type="submit"
               className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-sm font-bold text-white shadow-xl shadow-sky-500/10 hover:shadow-sky-500/20 active:scale-95 transition-all cursor-pointer"
             >
-              <span>Save & Run Initial Audit</span>
+              <span>Save & Proceed to Audit</span>
               <ChevronRight size={16} />
             </button>
           </div>

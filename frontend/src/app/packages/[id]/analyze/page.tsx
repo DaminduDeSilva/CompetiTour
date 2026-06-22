@@ -11,7 +11,12 @@ import {
   AlertTriangle,
   ArrowRight,
   TrendingUp,
-  Cpu
+  Cpu,
+  Globe,
+  Shield,
+  Plus,
+  Play,
+  MapPin
 } from "lucide-react";
 
 interface Step {
@@ -25,6 +30,7 @@ interface Step {
 export default function AnalyzePage() {
   const router = useRouter();
   const params = useParams();
+  const [isConfiguring, setIsConfiguring] = useState(true);
   const [progress, setProgress] = useState(0);
   const [currentStepId, setCurrentStepId] = useState(1);
   const [finished, setFinished] = useState(false);
@@ -99,7 +105,7 @@ export default function AnalyzePage() {
 
   // Stepper logic
   useEffect(() => {
-    if (finished) return;
+    if (isConfiguring || finished) return;
 
     const interval = setInterval(() => {
       setProgress((prev) => {
@@ -136,9 +142,142 @@ export default function AnalyzePage() {
         return next;
       });
     }, 150); // Fast animation
-
     return () => clearInterval(interval);
-  }, [finished]);
+  }, [finished, isConfiguring]);
+
+  if (isConfiguring) {
+    return (
+      <PageWrapper>
+        {/* Header */}
+        <div>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Cpu size={20} className="text-sky-400" />
+            Configure Pricing Audit
+          </h2>
+          <p className="text-xs text-gray-300 mt-1">Configure proxy routing and target source market parameters for deep analysis</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-6">
+          {/* Left Column: Form Config */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Globe size={16} className="text-sky-400" />
+                Target Source Markets
+              </h3>
+              <p className="text-xs text-gray-400 -mt-3">Select which source market prices you want to audit against local OTA listings.</p>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { code: "DE", name: "Germany", flag: "🇩🇪", checked: true },
+                  { code: "GB", name: "United Kingdom", flag: "🇬🇧", checked: true },
+                  { code: "AU", name: "Australia", flag: "🇦🇺", checked: true },
+                  { code: "FR", name: "France", flag: "🇫🇷", checked: false },
+                  { code: "US", name: "United States", flag: "🇺🇸", checked: false },
+                  { code: "JP", name: "Japan", flag: "🇯🇵", checked: false },
+                ].map((m) => (
+                  <label key={m.code} className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/10 cursor-pointer hover:border-zinc-700 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      defaultChecked={m.checked}
+                      className="rounded border-zinc-700 bg-zinc-950 text-sky-500 focus:ring-sky-500/20"
+                    />
+                    <span className="text-xs text-gray-300 flex items-center gap-1.5">
+                      <span>{m.flag}</span> {m.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="h-px bg-zinc-900 my-2" />
+
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <FileText size={16} className="text-emerald-400" />
+                OTA Platforms to Audit
+              </h3>
+              <p className="text-xs text-gray-400 -mt-3">Scrape public retail listings from the selected travel platforms.</p>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { id: "booking", name: "Booking.com", checked: true },
+                  { id: "agoda", name: "Agoda", checked: true },
+                  { id: "expedia", name: "Expedia", checked: false },
+                  { id: "viator", name: "Viator", checked: true },
+                ].map((platform) => (
+                  <label key={platform.id} className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/10 cursor-pointer hover:border-zinc-700 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      defaultChecked={platform.checked}
+                      className="rounded border-zinc-700 bg-zinc-950 text-sky-500 focus:ring-sky-500/20"
+                    />
+                    <span className="text-xs text-gray-300">{platform.name}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="h-px bg-zinc-900 my-2" />
+
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Shield size={16} className="text-purple-400" />
+                Proxy Routing Profile
+              </h3>
+              <p className="text-xs text-gray-400 -mt-3">Define the proxy tunneling infrastructure used to query the OTA search endpoints.</p>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-gray-400">Proxy Product Category</label>
+                <select 
+                  defaultValue="premium_residential"
+                  className="w-full px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs focus:border-sky-500 focus:outline-none text-white font-medium appearance-none"
+                >
+                  <option value="premium_residential">Premium Residential Proxies (Anti-bot Bypass)</option>
+                  <option value="isp">ISP Proxies (Stable Sticky Sessions)</option>
+                  <option value="dual_proxy">Dual-Proxy Orchestration (Recommended)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Package Details & Run */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
+              <div>
+                <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded uppercase">Target Package</span>
+                <h3 className="text-base font-bold text-white mt-2">Adventure & Wildlife Safari</h3>
+                <p className="text-xs text-gray-300 mt-1">12 Days · Sri Lanka · $6,050 USD</p>
+              </div>
+
+              <div className="h-px bg-zinc-900" />
+
+              <div className="flex flex-col gap-3">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Itinerary Components</h4>
+                <div className="flex flex-col gap-2.5">
+                  {[
+                    "Cinnamon Wild Yala (3 Nights)",
+                    "Yala National Park Safari (Excursion)",
+                    "Cape Weligama (4 Nights)",
+                    "Colombo to Yala & Weligama Transfer"
+                  ].map((c, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-gray-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+                      <span>{c}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsConfiguring(false)}
+                className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-sm font-bold text-white shadow-xl shadow-sky-500/10 hover:shadow-sky-500/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <Play size={16} fill="white" />
+                <span>Start Real-Time AI Audit</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
