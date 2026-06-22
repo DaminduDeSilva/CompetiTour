@@ -44,7 +44,7 @@ export default function OtaConfigPage() {
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Globe size={20} className="text-red-400" /> OTA Platform Registry
           </h2>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-300 mt-1">
             Manage scraper modules, parser versions, and anti-bot flags per platform
           </p>
         </div>
@@ -84,8 +84,8 @@ export default function OtaConfigPage() {
                       Bot Risk: {p.botRisk}
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 mt-1">{p.notes}</p>
-                  <div className="flex items-center gap-4 mt-2 text-[10px] text-gray-600">
+                  <p className="text-[11px] text-gray-300 mt-1">{p.notes}</p>
+                  <div className="flex items-center gap-4 mt-2 text-[10px] text-gray-400">
                     <span>Module: <code className="text-sky-400">{p.module}</code></span>
                     <span>Last parsed: {p.lastParsed}</span>
                   </div>
@@ -95,7 +95,7 @@ export default function OtaConfigPage() {
               <div className="flex items-center gap-4 shrink-0">
                 {/* Parser version */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-gray-500 font-semibold uppercase">Parser Version</label>
+                  <label className="text-[10px] text-gray-300 font-semibold uppercase">Parser Version</label>
                   {/* TODO(backend): PATCH /admin/ota/platforms/{id} { version } — triggers worker hot-reload */}
                   <input type="text" defaultValue={p.version}
                     className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-white focus:border-red-500 focus:outline-none w-24 text-center" />
@@ -103,7 +103,7 @@ export default function OtaConfigPage() {
 
                 {/* Enable/Disable toggle */}
                 <div className="flex flex-col gap-1 items-center">
-                  <label className="text-[10px] text-gray-500 font-semibold uppercase">Enabled</label>
+                  <label className="text-[10px] text-gray-300 font-semibold uppercase">Enabled</label>
                   <button
                     onClick={() => toggleEnabled(p.id)}
                     className={`w-10 h-6 rounded-full transition-all cursor-pointer relative ${p.enabled ? "bg-emerald-500" : "bg-zinc-700"}`}
@@ -119,7 +119,7 @@ export default function OtaConfigPage() {
 
       <div className="p-4 rounded-2xl border border-sky-500/20 bg-sky-500/5 flex items-start gap-3">
         <AlertTriangle size={16} className="text-sky-400 shrink-0 mt-0.5" />
-        <p className="text-xs text-gray-500 leading-relaxed">
+        <p className="text-xs text-gray-300 leading-relaxed">
           <strong className="text-white">Parser hot-swap:</strong> Updating a parser version number here triggers a config reload on the next job picked up by a worker. No full redeployment required.
           {/* TODO(backend): Wire version field changes to PUT /admin/ota/platforms/{id} + trigger worker config reload */}
         </p>

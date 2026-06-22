@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FolderHeart, BarChart3, Settings, LogOut,
@@ -11,12 +12,12 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   const menuItems = [
-    { name: "Dashboard",      href: "/dashboard",      icon: LayoutDashboard },
-    { name: "Packages",       href: "/packages",       icon: FolderOpen },
-    { name: "Add Package",    href: "/packages/new",   icon: FolderHeart },
-    { name: "Reports",        href: "/reports",        icon: BarChart3 },
-    { name: "Notifications",  href: "/notifications",  icon: Bell },
-    { name: "Settings",       href: "/settings",       icon: Settings },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Packages", href: "/packages", icon: FolderOpen },
+    { name: "Add Package", href: "/packages/new", icon: FolderHeart },
+    { name: "Reports", href: "/reports", icon: BarChart3 },
+    { name: "Notifications", href: "/notifications", icon: Bell },
+    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   return (
@@ -24,13 +25,18 @@ export default function Sidebar() {
       <div className="flex flex-col gap-8">
 
         {/* Brand Card */}
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-white text-sm">
-            CT
-          </div>
-          <div className="flex flex-col">
+        <Link href="/" className="flex items-center gap-0">
+          <Image
+            src="/logo.png"
+            alt="CompetiTour Logo"
+            width={150}
+            height={100}
+            className="h-13 w-auto object-contain"
+            priority
+          />
+          <div className="flex flex-col -ml-5">
             <span className="text-sm font-bold text-white">CompetiTour</span>
-            <span className="text-[9px] text-gray-500 uppercase tracking-widest font-semibold">ZeroTrace · DMC</span>
+            <span className="text-[9px] text-gray-300 uppercase tracking-widest font-semibold">ZeroTrace · DMC</span>
           </div>
         </Link>
 
@@ -44,11 +50,10 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                  isActive
-                    ? "bg-sky-500/10 border border-sky-500/20 text-sky-400"
-                    : "border border-transparent text-gray-400 hover:text-white hover:bg-zinc-900/40"
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
+                  ? "bg-sky-500/10 border border-sky-500/20 text-sky-400"
+                  : "border border-transparent text-gray-400 hover:text-white hover:bg-zinc-900/40"
+                  }`}
               >
                 <Icon size={18} className={isActive ? "text-sky-400" : "text-gray-400 group-hover:text-white transition-colors"} />
                 <span className="flex-1">{item.name}</span>
@@ -67,13 +72,13 @@ export default function Sidebar() {
           </div>
           <div className="flex flex-col">
             <span className="text-xs font-bold text-white">Proxy Secured</span>
-            <span className="text-[9px] text-gray-500">Torch Labs via ZeroTrace</span>
+            <span className="text-[9px] text-gray-300">Torch Labs via ZeroTrace</span>
           </div>
         </div>
 
         <Link
           href="/login"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:text-red-400 hover:bg-red-500/5 transition-all"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-red-400 hover:bg-red-500/5 transition-all"
         >
           <LogOut size={18} />
           <span>Sign Out</span>

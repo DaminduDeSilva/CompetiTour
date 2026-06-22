@@ -31,7 +31,7 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-2xl font-black text-white">CompetiTour</h1>
-            <p className="text-sm text-gray-500 mt-1">AI-Powered Pricing Intelligence for DMCs</p>
+            <p className="text-sm text-gray-300 mt-1">AI-Powered Pricing Intelligence for DMCs</p>
           </div>
         </div>
 
@@ -39,7 +39,7 @@ export default function LoginPage() {
         <div className="p-8 rounded-2xl border border-zinc-900 bg-zinc-950/60 backdrop-blur-md flex flex-col gap-6">
           <div>
             <h2 className="text-lg font-bold text-white">Sign in to your workspace</h2>
-            <p className="text-xs text-gray-500 mt-1">Powered by ZeroTrace intelligence platform</p>
+            <p className="text-xs text-gray-300 mt-1">Powered by ZeroTrace intelligence platform</p>
           </div>
 
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -65,7 +65,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShow(!show)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white transition-colors"
                 >
                   {show ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -87,13 +87,13 @@ export default function LoginPage() {
 
           <div className="flex items-center gap-2 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
             <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-            <p className="text-[10px] text-gray-500">
+            <p className="text-[10px] text-gray-300">
               Demo credentials pre-filled. Click <strong className="text-white">Sign In</strong> to enter the DMC portal.
             </p>
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-600">
+        <p className="text-center text-xs text-gray-400">
           ZeroTrace admin?{" "}
           <a href="/admin/login" className="text-red-400 hover:text-red-300 font-semibold">
             Access admin console →

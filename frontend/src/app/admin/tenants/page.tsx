@@ -26,7 +26,7 @@ export default function TenantsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2"><Users size={20} className="text-red-400" /> Tenant Management</h2>
-          <p className="text-xs text-gray-500 mt-1">{tenants.length} registered DMC organisations</p>
+          <p className="text-xs text-gray-300 mt-1">{tenants.length} registered DMC organisations</p>
         </div>
         {/* TODO(backend): POST /admin/tenants — create tenant + send invite email */}
         <button onClick={() => alert("Invite flow: Enter email → system sends signed onboarding link.\n[TODO: wire to POST /admin/tenants]")}
@@ -37,7 +37,7 @@ export default function TenantsPage() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
         <input type="text" placeholder="Search tenants..." value={search} onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-sm text-white placeholder-gray-600 focus:border-red-500 focus:outline-none" />
       </div>
@@ -58,7 +58,7 @@ export default function TenantsPage() {
                 <td className="px-5 py-4">
                   <div>
                     <p className="text-sm font-bold text-white">{t.name}</p>
-                    <p className="text-[10px] text-gray-500">{t.email}</p>
+                    <p className="text-[10px] text-gray-300">{t.email}</p>
                   </div>
                 </td>
                 <td className="px-5 py-4">
@@ -79,7 +79,7 @@ export default function TenantsPage() {
                     {t.markets.map(m => <span key={m} className="text-[10px] font-bold bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-gray-400">{m}</span>)}
                   </div>
                 </td>
-                <td className="px-5 py-4 text-gray-500 whitespace-nowrap">{t.lastActive}</td>
+                <td className="px-5 py-4 text-gray-300 whitespace-nowrap">{t.lastActive}</td>
                 <td className="px-5 py-4">
                   <Link href={`/admin/tenants/${t.id}`}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-[10px] font-bold text-gray-400 hover:text-white transition-colors">

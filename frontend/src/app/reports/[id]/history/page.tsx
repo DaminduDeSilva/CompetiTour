@@ -114,7 +114,7 @@ export default function ReportHistoryPage() {
             Audit Result
           </span>
           <h2 className="text-xl font-bold text-white mt-1">Adventure & Wildlife Safari - 12 Days</h2>
-          <p className="text-xs text-gray-500 mt-0.5">DMC Base Price: LKR 1,850,000 (approx. €5,660)</p>
+          <p className="text-xs text-gray-300 mt-0.5">DMC Base Price: LKR 1,850,000 (approx. €5,660)</p>
         </div>
       </div>
 
@@ -143,15 +143,15 @@ export default function ReportHistoryPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex gap-8">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-500 uppercase font-semibold">Your Price</span>
+                  <span className="text-[10px] text-gray-300 uppercase font-semibold">Your Price</span>
                   <span className="text-sm font-black text-white">€{totalDmcEur.toLocaleString()}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-500 uppercase font-semibold">Market Sum-of-Parts</span>
+                  <span className="text-[10px] text-gray-300 uppercase font-semibold">Market Sum-of-Parts</span>
                   <span className="text-sm font-black text-white">€{totalScrapedEur.toLocaleString()}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-500 uppercase font-semibold">Pricing Gap Opportunity</span>
+                  <span className="text-[10px] text-gray-300 uppercase font-semibold">Pricing Gap Opportunity</span>
                   <span className="text-sm font-black text-emerald-400">+€{Math.round((totalScrapedEur * 0.9 - totalDmcEur))} (at 10% discount)</span>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export default function ReportHistoryPage() {
           <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
             <div>
               <h3 className="text-sm font-bold text-white">Component Price Breakdown</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Scraped OTA match equivalence details</p>
+              <p className="text-xs text-gray-300 mt-0.5">Scraped OTA match equivalence details</p>
             </div>
 
             <div className="flex flex-col gap-4">
@@ -196,13 +196,13 @@ export default function ReportHistoryPage() {
 
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-white">{comp.name}</span>
-                      <span className="text-[10px] text-gray-500 mt-0.5">{comp.details}</span>
+                      <span className="text-[10px] text-gray-300 mt-0.5">{comp.details}</span>
                       <span className="text-xs text-sky-400 font-semibold mt-1">€{comp.yourCostEur.toLocaleString()}</span>
                     </div>
                   </div>
 
                   {/* Match Arrow Icon */}
-                  <div className="hidden md:block text-gray-600">
+                  <div className="hidden md:block text-gray-400">
                     <ArrowRight size={16} />
                   </div>
 
@@ -216,7 +216,7 @@ export default function ReportHistoryPage() {
                         {comp.scrapedName}
                       </span>
                     </div>
-                    <span className="text-[10px] text-gray-500 mt-0.5">
+                    <span className="text-[10px] text-gray-300 mt-0.5">
                       Confidence: <strong className="text-emerald-400">{comp.confidence}%</strong> ({comp.method})
                     </span>
                     <span className="text-xs text-amber-500 font-semibold mt-1">€{comp.scrapedCostEur.toLocaleString()}</span>
@@ -227,7 +227,7 @@ export default function ReportHistoryPage() {
                     <span className="text-xs font-bold text-emerald-400">
                       {comp.delta}%
                     </span>
-                    <span className="text-[10px] text-gray-500">vs OTA price</span>
+                    <span className="text-[10px] text-gray-300">vs OTA price</span>
                   </div>
                 </div>
               ))}
@@ -273,7 +273,7 @@ export default function ReportHistoryPage() {
               <AlertTriangle size={14} className="text-amber-500" />
               Why this matching is reliable
             </h4>
-            <p className="text-[10px] text-gray-500 leading-relaxed">
+            <p className="text-[10px] text-gray-300 leading-relaxed">
               We leverage Torch Labs residential proxies to bypass OTA geofencing and anti-bot systems, ensuring the German market rates are identical to what travelers see from their browsers in Frankfurt.
             </p>
           </div>
@@ -284,7 +284,7 @@ export default function ReportHistoryPage() {
       <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6 mt-8">
         <div>
           <h3 className="text-sm font-bold text-white">Historical Audit Logs</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Timeline of past proxy scrapes and pricing snapshots for this package</p>
+          <p className="text-xs text-gray-300 mt-0.5">Timeline of past proxy scrapes and pricing snapshots for this package</p>
         </div>
 
         <div className="overflow-x-auto">

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Globe,
   Target,
@@ -40,55 +41,57 @@ export default function Home() {
       <div className="absolute top-[20%] left-10 w-[400px] h-[400px] rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none" />
 
       {/* Navigation Header */}
-      <header className="relative z-50 max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+      <header className="relative z-50 w-full px-6 md:px-12 py-6 flex items-center justify-between">
 
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform">
-            <div className="w-8 h-8 rounded-[10px] bg-black flex items-center justify-center">
-              {/* Dynamic Logo Symbol */}
-              <div className="relative w-4 h-4 rounded-full border-2 border-sky-400 flex items-center justify-center animate-[spin_6s_linear_infinite]">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 absolute -top-1" />
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 absolute -bottom-1" />
-              </div>
+        {/* Left Side: Logo & Desktop Nav Items */}
+        <div className="flex items-center gap-12">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-1 group">
+            <Image
+              src="/logo.png"
+              alt="CompetiTour Logo"
+              width={150}
+              height={100}
+              className="h-15 w-auto object-contain group-hover:scale-105 transition-transform"
+              priority
+            />
+            <div className="flex flex-col -ml-7">
+              <span className="text-xl font-bold tracking-tight text-white group-hover:text-sky-400 transition-colors">
+                CompetiTour
+              </span>
+              <span className="text-[10px] tracking-widest text-gray-400 uppercase font-semibold -mt-1">
+                Travel Intelligence Layer
+              </span>
             </div>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-white group-hover:text-sky-400 transition-colors">
-              CompetiTour
-            </span>
-            <span className="text-[10px] tracking-widest text-gray-400 uppercase font-semibold -mt-1">
-              Travel Intelligence Layer
-            </span>
-          </div>
-        </Link>
-
-        {/* Desktop Nav Items */}
-        <nav className="hidden lg:flex items-center gap-8">
-          <div className="relative group cursor-pointer">
-            <span className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              Product <ChevronDown size={14} className="text-gray-500 group-hover:text-white transition-colors" />
-            </span>
-          </div>
-          <div className="relative group cursor-pointer">
-            <span className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              Solutions <ChevronDown size={14} className="text-gray-500 group-hover:text-white transition-colors" />
-            </span>
-          </div>
-          <div className="relative group cursor-pointer">
-            <span className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              Resources <ChevronDown size={14} className="text-gray-500 group-hover:text-white transition-colors" />
-            </span>
-          </div>
-          <Link href="#" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-            Pricing
           </Link>
-          <div className="relative group cursor-pointer">
-            <span className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              Company <ChevronDown size={14} className="text-gray-500 group-hover:text-white transition-colors" />
-            </span>
-          </div>
-        </nav>
+
+          {/* Desktop Nav Items */}
+          <nav className="hidden lg:flex items-center gap-8">
+            <div className="relative group cursor-pointer">
+              <span className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                Product <ChevronDown size={14} className="text-gray-300 group-hover:text-white transition-colors" />
+              </span>
+            </div>
+            <div className="relative group cursor-pointer">
+              <span className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                Solutions <ChevronDown size={14} className="text-gray-300 group-hover:text-white transition-colors" />
+              </span>
+            </div>
+            <div className="relative group cursor-pointer">
+              <span className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                Resources <ChevronDown size={14} className="text-gray-300 group-hover:text-white transition-colors" />
+              </span>
+            </div>
+            <Link href="#" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              Pricing
+            </Link>
+            <div className="relative group cursor-pointer">
+              <span className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                Company <ChevronDown size={14} className="text-gray-300 group-hover:text-white transition-colors" />
+              </span>
+            </div>
+          </nav>
+        </div>
 
         {/* Actions */}
         <div className="hidden sm:flex items-center gap-6">
@@ -174,7 +177,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="text-sm font-semibold text-white group-hover:text-sky-400 transition-colors">Watch Demo</div>
-                <div className="text-xs text-gray-500">2 min overview</div>
+                <div className="text-xs text-gray-300">2 min overview</div>
               </div>
             </button> */}
           </div>
@@ -238,7 +241,7 @@ export default function Home() {
 
       {/* Trusted By Section (Partners) */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 pb-24 text-center">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500 mb-10">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-300 mb-10">
           Trusted By Leading Travel Companies
         </h2>
 
@@ -248,7 +251,7 @@ export default function Home() {
             <span className="font-serif italic text-lg tracking-wide text-gray-300">
               Aitken Spence
             </span>
-            <span className="text-[8px] uppercase tracking-[0.3em] text-gray-500 font-sans -mt-0.5">
+            <span className="text-[8px] uppercase tracking-[0.3em] text-gray-300 font-sans -mt-0.5">
               Travels
             </span>
           </div>
@@ -258,7 +261,7 @@ export default function Home() {
             <span className="font-sans font-bold text-xl tracking-tight text-gray-300">
               Jetwing
             </span>
-            <span className="text-[8px] uppercase tracking-[0.4em] text-gray-500 font-sans">
+            <span className="text-[8px] uppercase tracking-[0.4em] text-gray-300 font-sans">
               Travels
             </span>
           </div>
@@ -268,7 +271,7 @@ export default function Home() {
             <span className="font-sans font-black text-lg tracking-widest text-gray-300 uppercase">
               Walkers
             </span>
-            <span className="text-[9px] tracking-[0.2em] text-gray-500 font-semibold uppercase">
+            <span className="text-[9px] tracking-[0.2em] text-gray-300 font-semibold uppercase">
               Tours
             </span>
           </div>
@@ -278,7 +281,7 @@ export default function Home() {
             <span className="font-serif text-xl tracking-wide text-gray-300">
               Cinnamon
             </span>
-            <span className="text-[7px] uppercase tracking-[0.25em] text-gray-500 font-sans -mt-0.5">
+            <span className="text-[7px] uppercase tracking-[0.25em] text-gray-300 font-sans -mt-0.5">
               Hotels & Resorts
             </span>
           </div>
@@ -290,7 +293,7 @@ export default function Home() {
             </span>
             <div className="flex flex-col items-start leading-none">
               <span className="text-[9px] uppercase font-bold text-gray-300 tracking-wider">Hospitality</span>
-              <span className="text-[7px] uppercase font-semibold text-gray-500 tracking-widest">Solutions</span>
+              <span className="text-[7px] uppercase font-semibold text-gray-300 tracking-widest">Solutions</span>
             </div>
           </div>
         </div>

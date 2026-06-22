@@ -40,7 +40,7 @@ export default function ReportsPage() {
             <BarChart3 size={20} className="text-sky-400" />
             Audit Reports
           </h2>
-          <p className="text-xs text-gray-500 mt-1">{allReports.length} completed audit runs across all packages</p>
+          <p className="text-xs text-gray-300 mt-1">{allReports.length} completed audit runs across all packages</p>
         </div>
         <button
           onClick={() => alert("Exporting all reports as CSV...")}
@@ -59,7 +59,7 @@ export default function ReportsPage() {
           { label: "At Risk", value: allReports.filter(r => r.status === "at_risk").length, color: "text-yellow-400" },
         ].map((c) => (
           <div key={c.label} className="p-5 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">{c.label}</p>
+            <p className="text-xs text-gray-300 font-semibold uppercase tracking-wider">{c.label}</p>
             <p className={`text-3xl font-black mt-1 ${c.color}`}>{c.value}</p>
           </div>
         ))}
@@ -68,7 +68,7 @@ export default function ReportsPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
           <input
             type="text"
             placeholder="Search by package or market..."
@@ -78,10 +78,10 @@ export default function ReportsPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter size={14} className="text-gray-500" />
+          <Filter size={14} className="text-gray-300" />
           {["all", "leakage", "at_risk", "competitive"].map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${filter === f ? "bg-sky-500/10 border-sky-500/20 text-sky-400" : "border-zinc-800 text-gray-500 hover:text-white"}`}>
+              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${filter === f ? "bg-sky-500/10 border-sky-500/20 text-sky-400" : "border-zinc-800 text-gray-300 hover:text-white"}`}>
               {f === "all" ? "All" : f === "at_risk" ? "At Risk" : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
@@ -103,7 +103,7 @@ export default function ReportsPage() {
               const sc = statusConfig[r.status];
               return (
                 <tr key={r.runId} className="hover:bg-zinc-900/20 transition-colors">
-                  <td className="px-5 py-4 text-gray-500 whitespace-nowrap">{r.date}</td>
+                  <td className="px-5 py-4 text-gray-300 whitespace-nowrap">{r.date}</td>
                   <td className="px-5 py-4 font-medium text-white max-w-[200px] truncate">{r.packageName}</td>
                   <td className="px-5 py-4 whitespace-nowrap">{r.marketFlag} {r.market}</td>
                   <td className="px-5 py-4 font-semibold text-white">{r.dmc}</td>
@@ -124,7 +124,7 @@ export default function ReportsPage() {
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="px-5 py-12 text-center text-gray-600">No reports match your filter.</td></tr>
+              <tr><td colSpan={8} className="px-5 py-12 text-center text-gray-400">No reports match your filter.</td></tr>
             )}
           </tbody>
         </table>

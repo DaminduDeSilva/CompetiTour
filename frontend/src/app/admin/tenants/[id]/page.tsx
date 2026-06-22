@@ -105,8 +105,8 @@ export default function TenantDetailPage() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-white">{t.name}</h2>
-          <p className="text-xs text-gray-500 mt-0.5">{t.email} · {t.contactName} · {t.phone}</p>
-          <p className="text-[10px] text-gray-600 mt-0.5">Joined {t.joined}</p>
+          <p className="text-xs text-gray-300 mt-0.5">{t.email} · {t.contactName} · {t.phone}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Joined {t.joined}</p>
         </div>
       </div>
 
@@ -137,7 +137,7 @@ export default function TenantDetailPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-400">Proxy Sub-user (read-only)</label>
                 <input type="text" value={t.proxySubuser} disabled
-                  className="px-4 py-2.5 rounded-xl border border-zinc-900 bg-zinc-950 text-xs text-gray-500 cursor-not-allowed" />
+                  className="px-4 py-2.5 rounded-xl border border-zinc-900 bg-zinc-950 text-xs text-gray-300 cursor-not-allowed" />
               </div>
             </div>
           </div>
@@ -147,14 +147,14 @@ export default function TenantDetailPage() {
             <h3 className="text-sm font-bold text-white">Monthly Usage</h3>
             <div className="flex flex-col gap-2">
               <div className="flex justify-between text-xs">
-                <span className="text-gray-500">Audits this month</span>
+                <span className="text-gray-300">Audits this month</span>
                 <span className="text-white font-bold">{t.monthlyAudits} / {t.maxAudits}</span>
               </div>
               <div className="w-full h-2 rounded-full bg-zinc-900">
                 <div className={`h-2 rounded-full transition-all ${usagePct > 80 ? "bg-red-500" : "bg-sky-500"}`}
                   style={{ width: `${usagePct}%` }} />
               </div>
-              <p className="text-[10px] text-gray-600">{usagePct}% of plan limit used</p>
+              <p className="text-[10px] text-gray-400">{usagePct}% of plan limit used</p>
             </div>
             <div className="flex flex-col gap-2 text-xs">
               {[
@@ -162,7 +162,7 @@ export default function TenantDetailPage() {
                 { label: "Total Audit Runs", value: t.audits, icon: <BarChart3 size={12} /> },
               ].map((s) => (
                 <div key={s.label} className="flex justify-between items-center">
-                  <span className="flex items-center gap-1.5 text-gray-500">{s.icon}{s.label}</span>
+                  <span className="flex items-center gap-1.5 text-gray-300">{s.icon}{s.label}</span>
                   <span className="font-bold text-white">{s.value}</span>
                 </div>
               ))}
@@ -179,21 +179,21 @@ export default function TenantDetailPage() {
                 <div key={i} className="py-4 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-white">{a.pkg}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{a.market} · {a.date}</p>
+                    <p className="text-xs text-gray-300 mt-0.5">{a.market} · {a.date}</p>
                   </div>
                   <span className={`text-sm font-black ${statusVariantColor[a.status]}`}>{a.variance}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center py-12 text-gray-600 text-sm">
+            <div className="flex-1 flex items-center justify-center py-12 text-gray-400 text-sm">
               No audit runs yet for this tenant.
             </div>
           )}
 
           {/* Markets */}
           <div className="pt-4 border-t border-zinc-900">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Active Source Markets</p>
+            <p className="text-xs text-gray-300 font-semibold uppercase tracking-wider mb-2">Active Source Markets</p>
             <div className="flex gap-2">
               {t.markets.map((m) => (
                 <span key={m} className="px-3 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold">{m}</span>

@@ -42,7 +42,7 @@ export default function NotificationsPage() {
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-sky-500 text-black">{unread}</span>
             )}
           </h2>
-          <p className="text-xs text-gray-500 mt-1">Audit alerts and system events for Horizon DMC</p>
+          <p className="text-xs text-gray-300 mt-1">Audit alerts and system events for Horizon DMC</p>
         </div>
         {unread > 0 && (
           <button onClick={markAllRead}
@@ -70,18 +70,18 @@ export default function NotificationsPage() {
                   <p className={`text-sm font-bold ${n.read ? "text-gray-300" : "text-white"}`}>{n.title}</p>
                   {!n.read && <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0 mt-1.5" />}
                 </div>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{n.body}</p>
-                <p className="text-[10px] text-gray-600 mt-2">{n.time}</p>
+                <p className="text-xs text-gray-300 mt-1 leading-relaxed">{n.body}</p>
+                <p className="text-[10px] text-gray-400 mt-2">{n.time}</p>
               </div>
               <button onClick={() => dismiss(n.id)}
-                className="text-gray-600 hover:text-gray-400 transition-colors shrink-0 cursor-pointer">
+                className="text-gray-400 hover:text-gray-400 transition-colors shrink-0 cursor-pointer">
                 <X size={14} />
               </button>
             </div>
           );
         })}
         {items.length === 0 && (
-          <div className="text-center py-16 text-gray-600">
+          <div className="text-center py-16 text-gray-400">
             <Bell size={32} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">All caught up — no notifications.</p>
           </div>

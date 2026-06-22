@@ -149,7 +149,7 @@ export default function AnalyzePage() {
             <Cpu size={20} className="text-sky-400 animate-spin" />
             Running Pricing Audit
           </h2>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-300 mt-1">
             Analyzing package "Adventure & Wildlife Safari - 12 Days" in target market Germany using real-time search queries
           </p>
         </div>
@@ -200,11 +200,11 @@ export default function AnalyzePage() {
 
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-white">{step.label}</span>
-                    <span className="text-[10px] text-gray-500 mt-0.5">{step.sublabel}</span>
+                    <span className="text-[10px] text-gray-300 mt-0.5">{step.sublabel}</span>
                   </div>
                 </div>
 
-                <span className="text-[9px] font-bold tracking-wider text-gray-600 uppercase">
+                <span className="text-[9px] font-bold tracking-wider text-gray-400 uppercase">
                   Step {step.id}/5
                 </span>
               </div>

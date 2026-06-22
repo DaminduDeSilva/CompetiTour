@@ -77,7 +77,7 @@ export default function AdminSidebar() {
 
         <Link
           href="/"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:text-red-400 hover:bg-red-500/5 transition-all"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-red-400 hover:bg-red-500/5 transition-all"
         >
           <LogOut size={18} />
           <span>Exit Admin</span>

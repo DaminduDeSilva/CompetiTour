@@ -66,7 +66,7 @@ export default function NewPackagePage() {
       {/* Header */}
       <div>
         <h2 className="text-xl font-bold text-white">Create New Package</h2>
-        <p className="text-xs text-gray-500 mt-1">Configure itinerary components for vertical price intelligence analysis</p>
+        <p className="text-xs text-gray-300 mt-1">Configure itinerary components for vertical price intelligence analysis</p>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -208,7 +208,7 @@ export default function NewPackagePage() {
                       />
                       {/* Cost */}
                       <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-[10px] text-gray-500 font-bold uppercase">LKR</span>
+                        <span className="absolute left-3 top-2.5 text-[10px] text-gray-300 font-bold uppercase">LKR</span>
                         <input 
                           type="number" 
                           value={comp.cost} 
@@ -227,7 +227,7 @@ export default function NewPackagePage() {
                   <button 
                     type="button"
                     onClick={() => removeComponent(comp.id)}
-                    className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/5 opacity-0 group-hover:opacity-100 transition-all"
+                    className="p-2 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-500/5 opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <Trash2 size={14} />
                   </button>

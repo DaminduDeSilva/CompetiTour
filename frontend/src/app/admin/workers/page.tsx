@@ -55,7 +55,7 @@ export default function WorkersPage() {
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Cpu size={20} className="text-red-400" /> Scraper Workers
           </h2>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-300 mt-1">
             {workers.filter(w => w.status === "busy").length} busy · {workers.filter(w => w.status === "idle").length} idle · {workers.filter(w => w.status === "error").length} error
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function WorkersPage() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-bold text-white">{w.hostname}</p>
-                  <p className="text-[10px] text-gray-500 font-mono mt-0.5">{w.id}</p>
+                  <p className="text-[10px] text-gray-300 font-mono mt-0.5">{w.id}</p>
                 </div>
                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${sc.color}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
@@ -85,9 +85,9 @@ export default function WorkersPage() {
 
               {w.status !== "idle" && (
                 <div className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                  <p className="text-[10px] text-gray-500">Current job</p>
+                  <p className="text-[10px] text-gray-300">Current job</p>
                   <p className="text-xs font-semibold text-white mt-0.5 truncate">{w.job}</p>
-                  <p className="text-[10px] text-gray-600 mt-0.5">{w.tenant}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{w.tenant}</p>
                 </div>
               )}
 
@@ -97,7 +97,7 @@ export default function WorkersPage() {
                   { label: "MEM", value: w.mem, color: "bg-sky-500" },
                 ].map((b) => (
                   <div key={b.label} className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-500 w-8">{b.label}</span>
+                    <span className="text-[10px] text-gray-300 w-8">{b.label}</span>
                     <div className="flex-1 h-1.5 rounded-full bg-zinc-900">
                       <div className={`h-1.5 rounded-full transition-all duration-700 ${b.color}`} style={{ width: `${b.value}%` }} />
                     </div>
@@ -106,7 +106,7 @@ export default function WorkersPage() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-gray-600 pt-1 border-t border-zinc-900">
+              <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1 border-t border-zinc-900">
                 <span>Uptime: {w.uptime}</span>
                 {w.status === "error" && (
                   <button onClick={() => alert(`Restarting ${w.hostname}...`)}
@@ -139,18 +139,18 @@ export default function WorkersPage() {
               <tr key={j.runId} className="hover:bg-zinc-900/20 transition-colors">
                 <td className="py-3 px-2 font-mono text-sky-400 text-[10px]">{j.runId}</td>
                 <td className="py-3 px-2 font-semibold text-white">{j.pkg}</td>
-                <td className="py-3 px-2 text-gray-500">{j.tenant}</td>
+                <td className="py-3 px-2 text-gray-300">{j.tenant}</td>
                 <td className="py-3 px-2">{j.market}</td>
                 <td className="py-3 px-2">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                     j.status === "running" ? "text-amber-400 bg-amber-500/10 border-amber-500/20" : "text-gray-400 bg-zinc-900 border-zinc-800"
                   }`}>{j.status}</span>
                 </td>
-                <td className="py-3 px-2 text-gray-600">{j.queued}</td>
+                <td className="py-3 px-2 text-gray-400">{j.queued}</td>
                 <td className="py-3 px-2">
                   {/* TODO(backend): DELETE /admin/jobs/{runId} to cancel */}
                   <button onClick={() => alert(`Cancelled job ${j.runId}`)}
-                    className="text-[10px] font-bold text-gray-600 hover:text-red-400 transition-colors cursor-pointer">
+                    className="text-[10px] font-bold text-gray-400 hover:text-red-400 transition-colors cursor-pointer">
                     Cancel
                   </button>
                 </td>

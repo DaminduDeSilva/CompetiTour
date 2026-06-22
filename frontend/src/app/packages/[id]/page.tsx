@@ -148,13 +148,13 @@ export default function PackageDetailPage() {
           )}
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${sc.color}`}>{sc.label}</span>
-            <span className="text-xs text-gray-500">{pkg.duration} · ${pkg.priceUsd.toLocaleString()} USD · LKR {pkg.priceLkr.toLocaleString()}</span>
+            <span className="text-xs text-gray-300">{pkg.duration} · ${pkg.priceUsd.toLocaleString()} USD · LKR {pkg.priceLkr.toLocaleString()}</span>
           </div>
           {editing ? (
             <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
               className="w-full mt-2 text-sm text-gray-400 bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 focus:border-sky-500 focus:outline-none resize-none" />
           ) : (
-            <p className="text-sm text-gray-500 mt-1">{desc}</p>
+            <p className="text-sm text-gray-300 mt-1">{desc}</p>
           )}
         </div>
       </div>
@@ -172,7 +172,7 @@ export default function PackageDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">{item.name}</p>
-                    <p className="text-[11px] text-gray-500">{item.details}</p>
+                    <p className="text-[11px] text-gray-300">{item.details}</p>
                   </div>
                 </div>
                 <span className="text-sm font-bold text-white">€{item.costEur.toLocaleString()}</span>
@@ -180,7 +180,7 @@ export default function PackageDetailPage() {
             ))}
           </div>
           <div className="flex justify-between items-center pt-3 border-t border-zinc-900">
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total DMC Cost</span>
+            <span className="text-xs text-gray-300 font-semibold uppercase tracking-wider">Total DMC Cost</span>
             <span className="text-lg font-black text-white">€{totalEur.toLocaleString()}</span>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function PackageDetailPage() {
             <h3 className="text-sm font-bold text-white">Audit Configuration</h3>
             <div className="flex flex-col gap-3 text-xs">
               <div>
-                <p className="text-gray-500 mb-1.5 font-semibold uppercase tracking-wider text-[10px]">Target Markets</p>
+                <p className="text-gray-300 mb-1.5 font-semibold uppercase tracking-wider text-[10px]">Target Markets</p>
                 <div className="flex gap-2 flex-wrap">
                   {pkg.markets.map((m) => (
                     <span key={m} className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 font-bold text-[11px]">{m}</span>
@@ -199,7 +199,7 @@ export default function PackageDetailPage() {
                 </div>
               </div>
               <div>
-                <p className="text-gray-500 mb-1.5 font-semibold uppercase tracking-wider text-[10px]">OTA Platforms</p>
+                <p className="text-gray-300 mb-1.5 font-semibold uppercase tracking-wider text-[10px]">OTA Platforms</p>
                 <div className="flex gap-2 flex-wrap">
                   {pkg.platforms.map((p) => (
                     <span key={p} className="px-2 py-0.5 rounded text-[10px] bg-zinc-900 border border-zinc-800 text-gray-300">{p}</span>
@@ -207,7 +207,7 @@ export default function PackageDetailPage() {
                 </div>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Proxy Type</span>
+                <span className="text-gray-300">Proxy Type</span>
                 <span className="font-semibold text-white capitalize">{pkg.proxyType === "residential" ? "Premium Residential" : "ISP Sticky"}</span>
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function PackageDetailPage() {
               <AlertTriangle size={16} className="text-blue-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-bold text-white">Margin Leakage Detected</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">This package is significantly underpriced vs. OTA market rates. Run an audit to see the full breakdown.</p>
+                <p className="text-[10px] text-gray-300 mt-0.5">This package is significantly underpriced vs. OTA market rates. Run an audit to see the full breakdown.</p>
               </div>
             </div>
           )}
@@ -226,7 +226,7 @@ export default function PackageDetailPage() {
           {/* TODO(backend): DELETE /packages/{id} — soft delete */}
           <button
             onClick={() => { if(confirm("Archive this package?")) router.push("/packages"); }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-red-500/30 text-xs font-bold text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-red-500/30 text-xs font-bold text-gray-300 hover:text-red-400 transition-colors cursor-pointer"
           >
             <Trash2 size={13} />
             <span>Archive Package</span>

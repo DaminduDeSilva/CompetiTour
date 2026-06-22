@@ -92,7 +92,7 @@ export default function PackagesPage() {
             <FolderHeart size={20} className="text-sky-400" />
             My Packages
           </h2>
-          <p className="text-xs text-gray-500 mt-1">{allPackages.length} packages monitored across {3} source markets</p>
+          <p className="text-xs text-gray-300 mt-1">{allPackages.length} packages monitored across {3} source markets</p>
         </div>
         <Link
           href="/packages/new"
@@ -106,7 +106,7 @@ export default function PackagesPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
           <input
             type="text"
             placeholder="Search packages..."
@@ -116,7 +116,7 @@ export default function PackagesPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter size={14} className="text-gray-500" />
+          <Filter size={14} className="text-gray-300" />
           {["all", "competitive", "at_risk", "underpriced", "pending"].map((f) => (
             <button
               key={f}
@@ -124,7 +124,7 @@ export default function PackagesPage() {
               className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                 filter === f
                   ? "bg-sky-500/10 border-sky-500/20 text-sky-400"
-                  : "border-zinc-800 text-gray-500 hover:text-white hover:border-zinc-700"
+                  : "border-zinc-800 text-gray-300 hover:text-white hover:border-zinc-700"
               }`}
             >
               {f === "all" ? "All" : f === "at_risk" ? "At Risk" : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -153,14 +153,14 @@ export default function PackagesPage() {
                       {sc.label}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">{pkg.duration} · {pkg.destination} · ${pkg.priceUsd.toLocaleString()} USD</p>
+                  <p className="text-xs text-gray-300 mt-0.5">{pkg.duration} · {pkg.destination} · ${pkg.priceUsd.toLocaleString()} USD</p>
                   <div className="flex items-center gap-3 mt-2">
-                    <span className="flex items-center gap-1 text-[10px] text-gray-600">
+                    <span className="flex items-center gap-1 text-[10px] text-gray-400">
                       <Clock size={10} /> Last audit: {pkg.lastAudit}
                     </span>
                     <div className="flex gap-1">
                       {pkg.markets.map((m) => (
-                        <span key={m} className="text-[10px] font-bold text-gray-500 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded">{m}</span>
+                        <span key={m} className="text-[10px] font-bold text-gray-300 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded">{m}</span>
                       ))}
                     </div>
                   </div>
@@ -187,7 +187,7 @@ export default function PackagesPage() {
           );
         })}
         {filtered.length === 0 && (
-          <div className="text-center py-16 text-gray-600 text-sm">No packages match your search.</div>
+          <div className="text-center py-16 text-gray-400 text-sm">No packages match your search.</div>
         )}
       </div>
     </PageWrapper>

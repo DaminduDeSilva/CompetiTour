@@ -83,9 +83,9 @@ export default function TopBar() {
                     <div className="mt-0.5 shrink-0">{typeIcon[n.type]}</div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-bold ${n.read ? "text-gray-300" : "text-white"}`}>{n.title}</p>
-                      <p className="text-[10px] text-gray-500 mt-0.5 truncate">{n.body}</p>
+                      <p className="text-[10px] text-gray-300 mt-0.5 truncate">{n.body}</p>
                     </div>
-                    <span className="text-[10px] text-gray-600 shrink-0">{n.time}</span>
+                    <span className="text-[10px] text-gray-400 shrink-0">{n.time}</span>
                   </div>
                 ))}
               </div>
@@ -102,7 +102,7 @@ export default function TopBar() {
         <div className="flex items-center gap-3 pl-2 border-l border-zinc-800">
           <div className="flex flex-col text-right">
             <span className="text-xs font-bold text-white">Horizon DMC</span>
-            <span className="text-[10px] text-gray-500 font-medium">Standard Account</span>
+            <span className="text-[10px] text-gray-300 font-medium">Standard Account</span>
           </div>
           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-bold text-white text-xs">
             HD

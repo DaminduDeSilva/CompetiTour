@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
         <div className="p-8 rounded-2xl border border-red-900/30 bg-zinc-950/60 backdrop-blur-md flex flex-col gap-6">
           <div>
             <h2 className="text-lg font-bold text-white">Admin Console Sign In</h2>
-            <p className="text-xs text-gray-500 mt-1">ZeroTrace staff credentials required</p>
+            <p className="text-xs text-gray-300 mt-1">ZeroTrace staff credentials required</p>
           </div>
 
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
                 <input type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-zinc-800 bg-zinc-950 text-sm text-white focus:border-red-500 focus:outline-none pr-12" />
                 <button type="button" onClick={() => setShow(!show)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white transition-colors">
                   {show ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -72,11 +72,11 @@ export default function AdminLoginPage() {
 
           <div className="flex items-center gap-2 p-3 rounded-xl border border-red-500/20 bg-red-500/5">
             <ShieldAlert size={14} className="text-red-400 shrink-0" />
-            <p className="text-[10px] text-gray-500">This console is for ZeroTrace platform staff only. All access is logged.</p>
+            <p className="text-[10px] text-gray-300">This console is for ZeroTrace platform staff only. All access is logged.</p>
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-600">
+        <p className="text-center text-xs text-gray-400">
           DMC user? <a href="/login" className="text-sky-400 hover:text-sky-300 font-semibold">Sign in to DMC portal →</a>
         </p>
       </div>

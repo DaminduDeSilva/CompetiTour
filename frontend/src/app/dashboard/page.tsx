@@ -138,7 +138,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-3xl font-black text-white">50.0%</div>
-            <div className="text-xs text-gray-500 mt-1">2 of 4 packages optimized in Germany</div>
+            <div className="text-xs text-gray-300 mt-1">2 of 4 packages optimized in Germany</div>
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-3xl font-black text-yellow-400">1</div>
-            <div className="text-xs text-gray-500 mt-1">Higher priced than OTA assembly</div>
+            <div className="text-xs text-gray-300 mt-1">Higher priced than OTA assembly</div>
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-3xl font-black text-blue-400">1</div>
-            <div className="text-xs text-gray-500 mt-1">Underpriced by &gt; 20% vs market</div>
+            <div className="text-xs text-gray-300 mt-1">Underpriced by &gt; 20% vs market</div>
           </div>
         </div>
 
@@ -180,7 +180,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-3xl font-black text-emerald-400">1,420</div>
-            <div className="text-xs text-gray-500 mt-1">98.4% success (Torch Labs ISP)</div>
+            <div className="text-xs text-gray-300 mt-1">98.4% success (Torch Labs ISP)</div>
           </div>
         </div>
       </div>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-white">Market Comparison Trend</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Classic Sri Lanka Tour - Germany Market (EUR)</p>
+              <p className="text-xs text-gray-300 mt-0.5">Classic Sri Lanka Tour - Germany Market (EUR)</p>
             </div>
             <span className="text-[10px] font-bold tracking-wider px-2 py-1 rounded bg-zinc-900 text-gray-400 border border-zinc-800 uppercase">
               Last 30 Days
@@ -267,7 +267,7 @@ export default function DashboardPage() {
         <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-white">Monitoring Locations</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Proxy exit nodes configured</p>
+            <p className="text-xs text-gray-300 mt-0.5">Proxy exit nodes configured</p>
           </div>
 
           <div className="flex flex-col gap-4 my-6">
@@ -277,7 +277,7 @@ export default function DashboardPage() {
                 <span className="text-xl">🇩🇪</span>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-white">Germany</span>
-                  <span className="text-[10px] text-gray-500 font-semibold uppercase">locale: de-DE</span>
+                  <span className="text-[10px] text-gray-300 font-semibold uppercase">locale: de-DE</span>
                 </div>
               </div>
               <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Active</span>
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                 <span className="text-xl">🇬🇧</span>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-white">United Kingdom</span>
-                  <span className="text-[10px] text-gray-500 font-semibold uppercase">locale: en-GB</span>
+                  <span className="text-[10px] text-gray-300 font-semibold uppercase">locale: en-GB</span>
                 </div>
               </div>
               <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Active</span>
@@ -301,14 +301,14 @@ export default function DashboardPage() {
                 <span className="text-xl">🇦🇺</span>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-white">Australia</span>
-                  <span className="text-[10px] text-gray-500 font-semibold uppercase">locale: en-AU</span>
+                  <span className="text-[10px] text-gray-300 font-semibold uppercase">locale: en-AU</span>
                 </div>
               </div>
               <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Active</span>
             </div>
           </div>
 
-          <div className="text-center text-[10px] text-gray-600 font-semibold uppercase tracking-wider">
+          <div className="text-center text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
             ISP Residential Gateways via Torch Labs
           </div>
         </div>
@@ -318,7 +318,7 @@ export default function DashboardPage() {
       <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
         <div>
           <h3 className="text-sm font-bold text-white">Monitored Packages</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Package competitiveness across key source markets</p>
+          <p className="text-xs text-gray-300 mt-0.5">Package competitiveness across key source markets</p>
         </div>
 
         {/* Desktop Table */}
@@ -340,7 +340,7 @@ export default function DashboardPage() {
                   <td className="py-4">
                     <div className="flex flex-col">
                       <span className="font-bold text-white">{pkg.name}</span>
-                      <span className="text-xs text-gray-500 mt-0.5">{pkg.destination}</span>
+                      <span className="text-xs text-gray-300 mt-0.5">{pkg.destination}</span>
                     </div>
                   </td>
                   <td className="py-4 text-gray-300 font-semibold">

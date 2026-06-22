@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-white">Platform Overview</h2>
-          <p className="text-xs text-gray-500 mt-1">ZeroTrace CompetiTour — Real-time platform health & tenant activity</p>
+          <p className="text-xs text-gray-300 mt-1">ZeroTrace CompetiTour — Real-time platform health & tenant activity</p>
         </div>
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
           <Activity size={12} className="animate-pulse" /> All Systems Operational
@@ -56,7 +56,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <div className="text-3xl font-black text-white">{m.value}</div>
-                <div className="text-xs text-gray-500 mt-1">{m.sub}</div>
+                <div className="text-xs text-gray-300 mt-1">{m.sub}</div>
               </div>
             </div>
           );
@@ -78,9 +78,9 @@ export default function AdminDashboardPage() {
                 <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${statusDot[a.status]}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white">{a.tenant}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">{a.event}</p>
+                  <p className="text-xs text-gray-300 mt-0.5 truncate">{a.event}</p>
                 </div>
-                <span className="text-[10px] text-gray-600 shrink-0 whitespace-nowrap">{a.time}</span>
+                <span className="text-[10px] text-gray-400 shrink-0 whitespace-nowrap">{a.time}</span>
               </div>
             ))}
           </div>
@@ -100,7 +100,7 @@ export default function AdminDashboardPage() {
               return (
                 <Link key={l.label} href={l.href}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 transition-all group">
-                  <Icon size={15} className="text-gray-500 group-hover:text-white transition-colors" />
+                  <Icon size={15} className="text-gray-300 group-hover:text-white transition-colors" />
                   <span className="text-xs font-semibold text-gray-400 group-hover:text-white transition-colors">{l.label}</span>
                   <ArrowRight size={12} className="ml-auto text-gray-700 group-hover:text-gray-400 transition-colors" />
                 </Link>
@@ -112,7 +112,7 @@ export default function AdminDashboardPage() {
             <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-bold text-white">3 Leakage Alerts</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Horizon DMC has packages underpriced by {">"} 20% in DE & AU markets.</p>
+              <p className="text-[10px] text-gray-300 mt-0.5">Horizon DMC has packages underpriced by {">"} 20% in DE & AU markets.</p>
             </div>
           </div>
         </div>
