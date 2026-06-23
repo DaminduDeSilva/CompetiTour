@@ -20,7 +20,7 @@ const FEATURES: { label: string; free: string; starter: string; professional: st
   { label: "Packages",            free: "2",          starter: "5",          professional: "25",        enterprise: "Unlimited" },
   { label: "Source Markets",      free: "1",          starter: "2",          professional: "5",         enterprise: "Unlimited" },
   { label: "OTA Platforms",       free: "2",          starter: "3",          professional: "All 4",     enterprise: "All 4" },
-  { label: "AI Matching (LLM)",   free: "BGE-M3 only",starter: "Claude Haiku",professional: "Claude Sonnet", enterprise: "Custom Model" },
+  { label: "AI Matching (LLM)",   free: "BGE-M3 only",starter: "Gemini Flash",professional: "Gemini Pro", enterprise: "Custom Model" },
   { label: "Proxy Type",          free: "Shared",     starter: "Residential", professional: "Dual-Proxy", enterprise: "Dedicated" },
   { label: "PDF Reports",         free: "—",          starter: "✓",          professional: "✓",         enterprise: "✓ + White-label" },
   { label: "Support",             free: "Community",  starter: "Email",      professional: "Priority",  enterprise: "Dedicated CSM" },

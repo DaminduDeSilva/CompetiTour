@@ -83,11 +83,11 @@ export default function AnalyzePage() {
     },
     {
       id: 4,
-      label: "AI Equivalence Verification (Claude)",
+      label: "AI Equivalence Verification (Gemini)",
       sublabel: "Running structural room-type and cancellation policy matching validation",
       status: "pending",
       logs: [
-        "[09:30:19] Invoking Claude LLM validation agent...",
+        "[09:30:19] Invoking Gemini LLM validation agent...",
         "[09:30:20] Prompt tokens: 1,420. Max tokens: 150.",
         "[09:30:21] LLM analysis: 'Deluxe Room' and 'Superior Room' at Cinnamon Wild Yala represent equivalent tiers. Breakfast: Included. Free cancellation policy: MATCHED.",
         "[09:30:22] Match verified. Confidence rating: 98.4%."

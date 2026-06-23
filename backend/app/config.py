@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     TORCH_USERNAME: str = ""
     TORCH_PASSWORD: str = ""
 
-    # --- Anthropic (Claude) ---
-    ANTHROPIC_API_KEY: str = ""
+    # --- Google (Gemini) ---
+    GEMINI_API_KEY: str = ""
 
     # --- JWT Auth ---
     JWT_SECRET_KEY: str = "changeme_jwt_secret_at_least_32_chars"

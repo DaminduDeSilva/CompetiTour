@@ -78,7 +78,7 @@ Containerized Python services using Playwright + Celery + Redis.
 - `expedia_scraper.py`
 - `viator_scraper.py`
 - `embedder.py` — BGE-M3 cosine similarity
-- `llm_verifier.py` — Claude equivalence check
+- `llm_verifier.py` — Gemini equivalence check
 - `report_compiler.py` — delta calculation + leakage flagging
 
 ---

@@ -70,7 +70,7 @@
   - **Step 1** — Dual-proxy sessions: *"Premium Residential for anti-bot evasion, ISP for sticky session"*
   - **Step 2** — Booking.com + Agoda scraping via Playwright
   - **Step 3** — BGE-M3 cosine similarity matching (0.942)
-  - **Step 4** — Claude LLM equivalence verification (98.4% confidence)
+  - **Step 4** — Gemini LLM equivalence verification (98.4% confidence)
   - **Step 5** — Gap: €7,120 market vs €5,660 DMC = **-20.5% Leakage**
 - Notice **AI Matcher: Running Audit** in the top bar (amber, bouncing)
 - Click **View Competitiveness Report**
@@ -97,7 +97,7 @@
 **11. Settings (`/settings`)**
 - Click **Settings**
 - Tab: **Workspace** — company name, notification threshold slider, email/in-app toggles, plan info (read-only)
-- Tab: **AI Matcher** — model selector (Claude Haiku/Sonnet/BGE-M3 only), confidence threshold
+- Tab: **AI Matcher** — model selector (Gemini Flash/Pro/BGE-M3 only), confidence threshold
 - Tab: **Proxy Status** — read-only display: *"Managed by ZeroTrace"*, live session IPs, success rates
 - Say: *"DMC subscribers see the connection status but cannot edit gateway credentials — that's handled at the admin level"*
 
@@ -153,7 +153,7 @@
 |--------|------------------|
 | Globe | *"Geo-targeted: the exit IP determines what price the scraper sees"* |
 | Audit Step 1 | *"Two separate proxy connections — each serves a distinct purpose"* |
-| Audit Step 4 | *"Claude LLM verifies room tier and cancellation policy equivalence — not just name matching"* |
+| Audit Step 4 | *"Gemini LLM verifies room tier and cancellation policy equivalence — not just name matching"* |
 | Report header | *"Package name, duration, and base rate are always visible — never floating data"* |
 | Report gap card | *"We show the gap, not a prescription. The DMC decides whether to reprice"* |
 | Settings / Proxy tab | *"The DMC sees their connection status — ZeroTrace manages the actual credentials"* |

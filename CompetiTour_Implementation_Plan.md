@@ -113,7 +113,7 @@ CompetiTour/
 │   │   └── matching/              # AI itinerary matching pipeline
 │   │       ├── __init__.py
 │   │       ├── embeddings.py      # Sentence-transformers encoding
-│   │       ├── llm_verifier.py    # Claude API equivalence verification
+│   │       ├── llm_verifier.py    # Gemini API equivalence verification
 │   │       ├── normalizer.py      # Price normalization, FX rates
 │   │       └── scorer.py          # Competitiveness score calculation
 │   │
@@ -219,7 +219,7 @@ CompetiTour/
                 │  ┌─────────────┐ ┌──────────┐│
                 │  │ Playwright   │ │ Matching ││
                 │  │ Scrape Jobs  │ │ Jobs     ││
-                │  │ (per market) │ │(Claude + ││
+                │  │ (per market) │ │(Gemini + ││
                 │  └──────┬──────┘ │ Embed)   ││
                 │         │        └──────────┘│
                 └─────────┼────────────────────┘
@@ -240,7 +240,7 @@ CompetiTour/
 | ORM | **SQLAlchemy 2.0 async** | Typed models, async-first, Alembic migrations built-in |
 | Browser stealth | **playwright-stealth** | Masks `navigator.webdriver`, spoofs fingerprints against OTA anti-bot |
 | Embeddings | **BGE-M3** (primary) or `paraphrase-multilingual-mpnet-base-v2` (fallback) | BGE-M3 is SOTA for multilingual retrieval; mpnet is proven and lighter |
-| LLM | **Claude Haiku 4.5** default, **Sonnet** for ambiguous cases | Cost-effective at scrape volume; escalation only for edge cases |
+| LLM | **Gemini Flash 1.5** default, **Pro** for ambiguous cases | Cost-effective at scrape volume; escalation only for edge cases |
 | Frontend | **Next.js 14 App Router** | Server components for initial data fetch, client for interactivity |
 
 ### Docker Compose Services
@@ -467,7 +467,7 @@ This is the core differentiator judges will scrutinize.
 
 2. **Candidate Retrieval (Embeddings)** — Generate sentence embeddings using BGE-M3 (multilingual, 50+ languages) via `sentence-transformers`. Retrieve top-5 candidates per DMC component by cosine similarity, filtered to same destination + component type.
 
-3. **Equivalence Verification (LLM)** — Pass DMC component + top-5 candidates to Claude Haiku 4.5 with structured prompt. Returns JSON array with confidence score (0-100) and justification. Escalate ambiguous cases (confidence 40-70) to Claude Sonnet for second pass.
+3. **Equivalence Verification (LLM)** — Pass DMC component + top-5 candidates to Gemini Flash 1.5 with structured prompt. Returns JSON array with confidence score (0-100) and justification. Escalate ambiguous cases (confidence 40-70) to Gemini Pro for second pass.
 
 4. **Price Normalization** — Convert all prices to USD using daily FX rate table. Apply rule-based adjustments for inclusions (breakfast, taxes, transfers) for like-for-like comparison.
 
@@ -551,7 +551,7 @@ Keep v1 forms simple (manual entry). CSV/PDF import is secondary — don't let i
 |---|---|---|
 | W. D. T. De Silva | Backend & API | FastAPI, Postgres, Alembic, job orchestration |
 | S. B. Wickramanayake | Scraping & Proxy | Playwright scrapers, Torch Labs integration, stealth |
-| E. K. K. D. R. Edirisinghe | AI/Matching | Embeddings, Claude integration, scoring logic |
+| E. K. K. D. R. Edirisinghe | AI/Matching | Embeddings, Gemini integration, scoring logic |
 | J. P. T. S. Jayasinghe | Frontend + Demo | Next.js dashboard, report views, demo polish |
 
 ### Week 1 (Jun 22–28) — Foundations
@@ -570,7 +570,7 @@ Keep v1 forms simple (manual entry). CSV/PDF import is secondary — don't let i
 - [ ] Remaining 3 platforms wired (Agoda, Expedia, Viator)
 - [ ] Second source market (GB) added, locale/currency verified
 - [ ] Embedding-based candidate retrieval tested against real scraped data
-- [ ] Claude equivalence verification wired, confidence scoring working
+- [ ] Gemini equivalence verification wired, confidence scoring working
 - [ ] Competitiveness score + report generation endpoint
 - [ ] Frontend: package creation, analyze trigger, report view (real data)
 
@@ -613,6 +613,6 @@ Keep v1 forms simple (manual entry). CSV/PDF import is secondary — don't let i
 ## 12. Open Questions for Team
 
 1. **Torch Labs credentials** — Has the team received dashboard access and created sub-users? Gateway hostname/port are dashboard-generated — needed before Week 1 coding.
-2. **Anthropic API key** — Do you have Claude API access, or should we plan an OpenAI fallback?
+2. **Google API key** — Do you have Gemini API access, or should we plan an OpenAI fallback?
 3. **Demo environment** — Will judges run `docker compose up` locally, or need hosted deployment (Railway/Render)?
 4. **Embedding model size** — BGE-M3 is better but ~2.3GB. Is worker container size a concern for demo?
