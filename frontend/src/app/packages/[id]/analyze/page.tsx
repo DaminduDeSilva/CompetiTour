@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CURRENT_USAGE, getCurrentPlan, getAuditLimit, formatLimit, isQuotaExhausted } from "@/lib/quota";
+import { fetchDashboardPackage } from "@/app/dashboard/actions";
 
 interface Step {
   id: number;
@@ -108,6 +109,23 @@ export default function AnalyzePage() {
     }
   ]);
 
+  const [packageData, setPackageData] = useState<any>(null);
+  const [isLoadingPackage, setIsLoadingPackage] = useState(true);
+
+  useEffect(() => {
+    async function loadPackage() {
+      if (params.id) {
+        setIsLoadingPackage(true);
+        const { data, error } = await fetchDashboardPackage(params.id as string);
+        if (data) {
+          setPackageData(data);
+        }
+        setIsLoadingPackage(false);
+      }
+    }
+    loadPackage();
+  }, [params.id]);
+
   // Stepper logic
   useEffect(() => {
     if (isConfiguring || finished) return;
@@ -149,6 +167,16 @@ export default function AnalyzePage() {
     }, 150); // Fast animation
     return () => clearInterval(interval);
   }, [finished, isConfiguring]);
+
+  if (isLoadingPackage) {
+    return (
+      <PageWrapper>
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 size={32} className="animate-spin text-sky-500" />
+        </div>
+      </PageWrapper>
+    );
+  }
 
   if (isConfiguring) {
     return (
@@ -247,8 +275,8 @@ export default function AnalyzePage() {
             <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
               <div>
                 <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded uppercase">Target Package</span>
-                <h3 className="text-base font-bold text-white mt-2">Adventure & Wildlife Safari</h3>
-                <p className="text-xs text-gray-300 mt-1">12 Days · Sri Lanka · $6,050 USD</p>
+                <h3 className="text-base font-bold text-white mt-2">{packageData?.name || "Loading..."}</h3>
+                <p className="text-xs text-gray-300 mt-1">{packageData?.duration_days} Days · {packageData?.destination} · ${packageData?.total_price_lkr} USD</p>
               </div>
 
               <div className="h-px bg-zinc-900" />
@@ -256,17 +284,15 @@ export default function AnalyzePage() {
               <div className="flex flex-col gap-3">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider">Itinerary Components</h4>
                 <div className="flex flex-col gap-2.5">
-                  {[
-                    "Cinnamon Wild Yala (3 Nights)",
-                    "Yala National Park Safari (Excursion)",
-                    "Cape Weligama (4 Nights)",
-                    "Colombo to Yala & Weligama Transfer"
-                  ].map((c, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs text-gray-400">
+                  {packageData?.components?.map((c: any) => (
+                    <div key={c.id} className="flex items-center gap-2 text-xs text-gray-400">
                       <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
-                      <span>{c}</span>
+                      <span>{c.name} ({c.nights_or_duration})</span>
                     </div>
                   ))}
+                  {(!packageData?.components || packageData.components.length === 0) && (
+                    <span className="text-xs text-gray-500 italic">No components defined.</span>
+                  )}
                 </div>
               </div>
 
@@ -358,7 +384,7 @@ export default function AnalyzePage() {
             Running Pricing Audit
           </h2>
           <p className="text-xs text-gray-300 mt-1">
-            Analyzing package "Adventure & Wildlife Safari - 12 Days" in target market Germany using real-time search queries
+            Analyzing package "{packageData?.name}" in target market Germany using real-time search queries
           </p>
         </div>
         

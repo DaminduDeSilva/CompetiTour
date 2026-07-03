@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import PageWrapper from "@/components/layout/PageWrapper";
 import {
@@ -7,6 +7,7 @@ import {
   CheckCircle, KeyRound, Network, Building2, Bell, CreditCard, ArrowRight, Zap
 } from "lucide-react";
 import { CURRENT_USAGE, getCurrentPlan, getUsagePercent, formatLimit } from "@/lib/quota";
+import { fetchCurrentUserProfile } from "@/app/dashboard/actions";
 
 const TABS = ["Workspace", "AI Matcher", "Proxy Status"] as const;
 type Tab = typeof TABS[number];
@@ -22,6 +23,25 @@ export default function SettingsPage() {
   const [alertThreshold, setAlertThreshold] = useState(15);
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [inAppAlerts, setInAppAlerts] = useState(true);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profileRes = await fetchCurrentUserProfile();
+        if (profileRes?.user) {
+          if (profileRes.user.company_name) {
+            setCompanyName(profileRes.user.company_name);
+          }
+          if (profileRes.user.email) {
+            setContactEmail(profileRes.user.email);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user profile in settings:", err);
+      }
+    };
+    loadProfile();
+  }, []);
 
   // AI Matcher state
   // TODO(backend): Fetch from GET /settings/matcher; save to PUT /settings/matcher

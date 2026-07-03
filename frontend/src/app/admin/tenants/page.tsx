@@ -5,12 +5,7 @@ import AdminPageWrapper from "@/components/layout/AdminPageWrapper";
 import { Users, Plus, Eye, ShieldOff, ShieldCheck, Search, ArrowRight } from "lucide-react";
 
 // TODO(backend): Fetch from GET /admin/tenants with pagination
-const tenants = [
-  { id: "t-001", name: "Horizon DMC", email: "ops@horizondmc.lk", plan: "Standard", status: "active", packages: 5, lastActive: "Just now", audits: 23, markets: ["DE","GB","AU"] },
-  { id: "t-002", name: "Jetwing Travels", email: "tech@jetwing.net", plan: "Enterprise", status: "active", packages: 12, lastActive: "2h ago", audits: 87, markets: ["DE","GB","FR","AU"] },
-  { id: "t-003", name: "Walkers Tours", email: "pricing@walkers.lk", plan: "Enterprise", status: "active", packages: 8, lastActive: "1d ago", audits: 41, markets: ["DE","JP"] },
-  { id: "t-004", name: "Cinnamon Holidays", email: "ops@cinnamonholidays.com", plan: "Standard", status: "suspended", packages: 3, lastActive: "7d ago", audits: 6, markets: ["GB"] },
-];
+const tenants: any[] = [];
 
 const planColor: Record<string, string> = {
   Enterprise: "text-purple-400 bg-purple-500/10 border-purple-500/20",
@@ -76,7 +71,7 @@ export default function TenantsPage() {
                 <td className="px-5 py-4 text-gray-400">{t.audits}</td>
                 <td className="px-5 py-4">
                   <div className="flex gap-1 flex-wrap">
-                    {t.markets.map(m => <span key={m} className="text-[10px] font-bold bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-gray-400">{m}</span>)}
+                    {t.markets.map((m: string) => <span key={m} className="text-[10px] font-bold bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-gray-400">{m}</span>)}
                   </div>
                 </td>
                 <td className="px-5 py-4 text-gray-300 whitespace-nowrap">{t.lastActive}</td>

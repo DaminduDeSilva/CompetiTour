@@ -6,25 +6,18 @@ import { Network, Save, CheckCircle, RefreshCw, Shield, Radio, AlertTriangle } f
 // TODO(backend): Fetch from GET /admin/proxy/config — master Torch Labs credentials
 // TODO(backend): Fetch sub-user pool from GET /admin/proxy/pool
 const initialConfig = {
-  gatewayHost: "geox.torchproxies.com",
-  gatewayPort: "6011",
-  masterUser: "zerotrace_master",
-  masterPass: "••••••••••••••••",
-  residentialPoolSize: 500,
-  ispPoolSize: 200,
-  rotationIntervalResidential: 15,
-  rotationIntervalIsp: 30,
+  gatewayHost: "",
+  gatewayPort: "",
+  masterUser: "",
+  masterPass: "",
+  residentialPoolSize: 0,
+  ispPoolSize: 0,
+  rotationIntervalResidential: 0,
+  rotationIntervalIsp: 0,
 };
 
 // Mock sub-user pool
-const subUserPool = [
-  { subuser: "zt-sub-horizondmc",   tenant: "Horizon DMC",       zone: "EU West",   type: "Residential", ip: "46.112.88.24",  status: "active",   successRate: 98.4, requests: 342 },
-  { subuser: "zt-sub-horizondmc-2", tenant: "Horizon DMC",       zone: "EU West",   type: "ISP",         ip: "109.250.4.12",  status: "active",   successRate: 99.1, requests: 187 },
-  { subuser: "zt-sub-jetwing",      tenant: "Jetwing Travels",   zone: "EU + APAC", type: "Residential", ip: "81.210.22.55",  status: "active",   successRate: 97.8, requests: 621 },
-  { subuser: "zt-sub-jetwing-2",    tenant: "Jetwing Travels",   zone: "EU + APAC", type: "ISP",         ip: "194.50.16.88",  status: "active",   successRate: 98.9, requests: 445 },
-  { subuser: "zt-sub-walkers",      tenant: "Walkers Tours",     zone: "EU + APAC", type: "Residential", ip: "89.187.42.10",  status: "active",   successRate: 96.2, requests: 289 },
-  { subuser: "zt-sub-cinnamon",     tenant: "Cinnamon Holidays", zone: "EU West",   type: "Residential", ip: "—",             status: "suspended",successRate: 0,    requests: 0 },
-];
+const subUserPool: any[] = [];
 
 export default function ProxyManagementPage() {
   const [config, setConfig] = useState(initialConfig);

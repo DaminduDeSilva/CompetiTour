@@ -28,8 +28,7 @@ dependencies = [
     "playwright-stealth>=1.0.6",
 
     # AI / Matching
-    "anthropic>=0.34.0",
-    "sentence-transformers>=3.0.0",
+    "google-generativeai>=0.8.0",
 
     # Utilities
     "pydantic-settings>=2.3.0",
@@ -57,3 +56,5 @@ line-length = 120
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+[tool.setuptools.packages.find]
+include = ["app*", "workers*", "scripts*"]

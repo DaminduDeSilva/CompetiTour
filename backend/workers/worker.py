@@ -4,6 +4,7 @@ import asyncio
 from arq import worker
 from arq.connections import RedisSettings
 from app.config import get_settings
+from workers.tasks.audit_task import audit_package
 
 settings = get_settings()
 
@@ -18,7 +19,7 @@ async def shutdown(ctx):
     print("Worker shutting down...")
 
 class WorkerSettings:
-    functions = []  # We'll add task functions here
+    functions = [audit_package]
     redis_settings = REDIS_SETTINGS
     on_startup = startup
     on_shutdown = shutdown

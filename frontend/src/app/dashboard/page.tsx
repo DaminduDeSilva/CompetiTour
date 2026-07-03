@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import PageWrapper from "@/components/layout/PageWrapper";
 import { 
@@ -11,69 +10,147 @@ import {
   Eye, 
   Sparkles,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Trash2
 } from "lucide-react";
 
-// Mock packages data
-const initialPackages = [
-  {
-    id: 1,
-    name: "Classic Sri Lanka Tour - 10 Days",
-    destination: "Sri Lanka",
-    priceLkr: 1250000,
-    priceUsd: 4100,
-    status: "competitive",
-    markets: {
-      de: { price: 4420, delta: -7.2, status: "competitive" },
-      gb: { price: 3980, delta: 3.0, status: "at_risk" },
-      au: { price: 5410, delta: -24.2, status: "underpriced" }
-    }
-  },
-  {
-    id: 2,
-    name: "Cultural Triangle & Beach - 7 Days",
-    destination: "Sri Lanka",
-    priceLkr: 980000,
-    priceUsd: 3200,
-    status: "at_risk",
-    markets: {
-      de: { price: 3100, delta: 3.2, status: "at_risk" },
-      gb: { price: 3480, delta: -8.0, status: "competitive" },
-      au: { price: 4200, delta: -23.8, status: "underpriced" }
-    }
-  },
-  {
-    id: 3,
-    name: "Adventure & Wildlife Safari - 12 Days",
-    destination: "Sri Lanka",
-    priceLkr: 1850000,
-    priceUsd: 6050,
-    status: "underpriced",
-    markets: {
-      de: { price: 7120, delta: -20.5, status: "underpriced" },
-      gb: { price: 7800, delta: -22.4, status: "underpriced" },
-      au: { price: 8200, delta: -26.2, status: "underpriced" }
-    }
-  },
-  {
-    id: 4,
-    name: "Luxury Boutique Getaway - 5 Days",
-    destination: "Sri Lanka",
-    priceLkr: 1500000,
-    priceUsd: 4900,
-    status: "competitive",
-    markets: {
-      de: { price: 5400, delta: -9.2, status: "competitive" },
-      gb: { price: 5350, delta: -8.4, status: "competitive" },
-      au: { price: 6100, delta: -19.6, status: "competitive" }
-    }
-  }
-];
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import { fetchDashboardPackages, runPackageAudit, deletePackage } from "./actions";
+import AuditProgressModal from "@/components/ui/AuditProgressModal";
+
+type CompetitivenessReport = {
+  id: number;
+  package_id: number;
+  source_market_id: number;
+  dmc_price_usd: number;
+  market_assembled_price_usd: number;
+  price_delta_pct: number;
+  status: string;
+  generated_at: string;
+};
+
+type Component = {
+  id: number;
+  matches?: { id: number }[];
+};
+
+type Package = {
+  id: number;
+  name: string;
+  destination: string;
+  duration_days: number;
+  total_price_lkr: number;
+  status: string;
+  reports?: CompetitivenessReport[];
+  components?: Component[];
+};
 
 export default function DashboardPage() {
-  const [packages, setPackages] = useState(initialPackages);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [auditingId, setAuditingId] = useState<number | null>(null);
+  
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [activePackageName, setActivePackageName] = useState<string>("");
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
 
-  const getStatusBadge = (status: string, delta: number) => {
+  const router = useRouter();
+
+  const handleDelete = async (pkgId: number, name: string) => {
+    if (confirm(`Are you sure you want to delete "${name}"? This will delete all its component matches and reports.`)) {
+      try {
+        const res = await deletePackage(pkgId);
+        if (res.success) {
+          setPackages((prev) => prev.filter((p) => p.id !== pkgId));
+          alert("Package successfully deleted!");
+        } else {
+          alert("Error deleting package: " + res.error);
+        }
+      } catch (err: any) {
+        alert("Failed to delete package: " + err.message);
+      }
+    }
+  };
+
+  // Check approval status
+  useEffect(() => {
+    const checkStatus = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.email) {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/users/by-email/${data.user.email}`);
+          if (res.ok) {
+            const user = await res.json();
+            if (!user.is_active && !user.is_superuser) {
+              router.push("/pending");
+            }
+          }
+        } catch (err) {
+          console.error("Failed to check status", err);
+        }
+      }
+    };
+    checkStatus();
+  }, [router]);
+
+  const fetchPackages = async () => {
+    try {
+      const res = await fetchDashboardPackages();
+      if (res.packages) {
+        setPackages(res.packages);
+      }
+    } catch (err) {
+      console.error("Failed to fetch packages", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const getLatestReportForMarket = (reports: CompetitivenessReport[] | undefined, marketId: number) => {
+    if (!reports || reports.length === 0) return null;
+    const marketReports = reports.filter(r => r.source_market_id === marketId);
+    if (marketReports.length === 0) return null;
+    return marketReports.sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
+  };
+
+  const getLatestReport = (reports: CompetitivenessReport[] | undefined) => {
+    if (!reports || reports.length === 0) return null;
+    return [...reports].sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
+  };
+
+  const latestReports = packages.map(pkg => getLatestReport(pkg.reports)).filter(Boolean) as CompetitivenessReport[];
+  const totalAudited = latestReports.length;
+  const competitiveCount = latestReports.filter(r => r.status === 'competitive').length;
+  const atRiskCount = latestReports.filter(r => r.status === 'at_risk').length;
+  const leakageCount = latestReports.filter(r => r.status === 'underpriced' || r.status === 'margin_leakage').length;
+  const competitiveRatio = totalAudited > 0 ? Math.round((competitiveCount / totalAudited) * 1000) / 10 : 0;
+
+  const totalScrapes = packages.reduce((acc, pkg) => {
+    return acc + (pkg.components?.reduce((sum, comp) => sum + (comp.matches?.length || 0), 0) || 0);
+  }, 0);
+
+  const getStatusBadge = (status: string, delta: number | null) => {
+    if (status === "partial") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-400">
+          Partial Audit
+        </span>
+      );
+    }
+    if (delta === null) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-zinc-800 border border-zinc-700 text-gray-400">
+          Pending
+        </span>
+      );
+    }
+    
     const formattedDelta = delta > 0 ? `+${delta}%` : `${delta}%`;
     switch (status) {
       case "competitive":
@@ -89,6 +166,7 @@ export default function DashboardPage() {
           </span>
         );
       case "underpriced":
+      case "margin_leakage":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400">
             Leakage ({formattedDelta})
@@ -113,7 +191,7 @@ export default function DashboardPage() {
             AI Pricing Audit Insights
           </h2>
           <p className="text-sm text-gray-400 mt-1">
-            We detected <strong className="text-sky-400">1 package</strong> at risk of losing bookings in Germany, and <strong className="text-emerald-400">1 package</strong> experiencing severe margin leakage.
+            We detected <strong className="text-sky-400">{atRiskCount} packages</strong> at risk of losing bookings, and <strong className="text-emerald-400">{leakageCount} packages</strong> experiencing severe margin leakage.
           </p>
         </div>
         <Link 
@@ -137,8 +215,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-white">50.0%</div>
-            <div className="text-xs text-gray-300 mt-1">2 of 4 packages optimized in Germany</div>
+            <div className="text-3xl font-black text-white">{competitiveRatio}%</div>
+            <div className="text-xs text-gray-300 mt-1">{competitiveCount} of {totalAudited} packages optimized</div>
           </div>
         </div>
 
@@ -151,7 +229,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-yellow-400">1</div>
+            <div className="text-3xl font-black text-yellow-400">{atRiskCount}</div>
             <div className="text-xs text-gray-300 mt-1">Higher priced than OTA assembly</div>
           </div>
         </div>
@@ -165,7 +243,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-blue-400">1</div>
+            <div className="text-3xl font-black text-blue-400">{leakageCount}</div>
             <div className="text-xs text-gray-300 mt-1">Underpriced by &gt; 20% vs market</div>
           </div>
         </div>
@@ -179,8 +257,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-emerald-400">1,420</div>
-            <div className="text-xs text-gray-300 mt-1">98.4% success (Torch Labs ISP)</div>
+            <div className="text-3xl font-black text-emerald-400">{totalScrapes}</div>
+            <div className="text-xs text-gray-300 mt-1">Ready for Torch Labs API</div>
           </div>
         </div>
       </div>
@@ -193,7 +271,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-white">Market Comparison Trend</h3>
-              <p className="text-xs text-gray-300 mt-0.5">Classic Sri Lanka Tour - Germany Market (EUR)</p>
+              <p className="text-xs text-gray-300 mt-0.5">Global Market Baseline (EUR)</p>
             </div>
             <span className="text-[10px] font-bold tracking-wider px-2 py-1 rounded bg-zinc-900 text-gray-400 border border-zinc-800 uppercase">
               Last 30 Days
@@ -253,11 +331,11 @@ export default function DashboardPage() {
             <div className="absolute top-2 right-4 flex items-center gap-4 text-xs font-semibold">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded bg-sky-500" />
-                <span className="text-gray-300">Your DMC Rate (€3,850 avg)</span>
+                <span className="text-gray-300">Your DMC Rate Avg</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded bg-amber-500" />
-                <span className="text-gray-300">Booking.com / Agoda (€4,150 avg)</span>
+                <span className="text-gray-300">OTA Assembly Avg</span>
               </div>
             </div>
           </div>
@@ -335,50 +413,113 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900 text-sm">
-              {packages.map((pkg) => (
-                <tr key={pkg.id} className="hover:bg-zinc-900/20 transition-all">
-                  <td className="py-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-white">{pkg.name}</span>
-                      <span className="text-xs text-gray-300 mt-0.5">{pkg.destination}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 text-gray-300 font-semibold">
-                    LKR {pkg.priceLkr.toLocaleString()}
-                  </td>
-                  <td className="py-4">
-                    {getStatusBadge(pkg.markets.de.status, pkg.markets.de.delta)}
-                  </td>
-                  <td className="py-4">
-                    {getStatusBadge(pkg.markets.gb.status, pkg.markets.gb.delta)}
-                  </td>
-                  <td className="py-4">
-                    {getStatusBadge(pkg.markets.au.status, pkg.markets.au.delta)}
-                  </td>
-                  <td className="py-4 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <Link 
-                        href={`/packages/${pkg.id}/analyze`}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-sky-400 hover:text-sky-300 border border-sky-400/20 bg-sky-400/5 px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        <Radio size={12} className="animate-pulse" />
-                        <span>Run Audit</span>
-                      </Link>
-                      <Link 
-                        href={`/reports/${pkg.id}/history`}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        <Eye size={12} />
-                        <span>History</span>
-                      </Link>
-                    </div>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-gray-400">Loading dynamic packages...</td>
                 </tr>
-              ))}
+              ) : packages.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-gray-400">No packages found. Add one to start monitoring!</td>
+                </tr>
+              ) : (
+                packages.map((pkg) => (
+                  <tr key={pkg.id} className="hover:bg-zinc-900/20 transition-all">
+                    <td className="py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-white">{pkg.name}</span>
+                        <span className="text-xs text-gray-300 mt-0.5">{pkg.duration_days} Days · {pkg.destination}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 text-gray-300 font-semibold">
+                      LKR {pkg.total_price_lkr.toLocaleString()}
+                    </td>
+                    <td className="py-4">
+                      {(() => {
+                        const deReport = getLatestReportForMarket(pkg.reports, 1);
+                        return deReport ? getStatusBadge(deReport.status, deReport.price_delta_pct) : getStatusBadge("pending", null);
+                      })()}
+                    </td>
+                    <td className="py-4">
+                      {(() => {
+                        const ukReport = getLatestReportForMarket(pkg.reports, 2);
+                        return ukReport ? getStatusBadge(ukReport.status, ukReport.price_delta_pct) : getStatusBadge("pending", null);
+                      })()}
+                    </td>
+                    <td className="py-4">
+                      {(() => {
+                        const auReport = getLatestReportForMarket(pkg.reports, 3);
+                        return auReport ? getStatusBadge(auReport.status, auReport.price_delta_pct) : getStatusBadge("pending", null);
+                      })()}
+                    </td>
+                    <td className="py-4 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        {auditingId === pkg.id ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-sky-400 border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 rounded-lg select-none animate-pulse">
+                            <Radio size={12} className="animate-spin" />
+                            <span>Auditing...</span>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              setAuditingId(pkg.id);
+                              try {
+                                const res = await runPackageAudit(pkg.id);
+                                if (res.success && res.data?.id) {
+                                  setActiveJobId(res.data.id);
+                                  setActivePackageName(pkg.name);
+                                  setIsProgressModalOpen(true);
+                                } else {
+                                  alert("Error triggering audit: " + (res.error || "No job ID returned"));
+                                }
+                              } catch (err: any) {
+                                alert("Failed to run audit: " + err.message);
+                              } finally {
+                                setAuditingId(null);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-gray-300 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Radio size={12} />
+                            <span>Run Audit</span>
+                          </button>
+                        )}
+                        <Link 
+                          href={`/reports/${pkg.id}/history`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          <Eye size={12} />
+                          <span>History</span>
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(pkg.id, pkg.name)}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-red-400 hover:text-red-300 border border-red-950 hover:border-red-800 bg-red-950/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+      
+      <AuditProgressModal
+        isOpen={isProgressModalOpen}
+        jobId={activeJobId}
+        packageName={activePackageName}
+        onClose={() => {
+          setIsProgressModalOpen(false);
+          setActiveJobId(null);
+        }}
+        onComplete={async () => {
+          // Trigger refresh of packages data
+          await fetchPackages();
+        }}
+      />
     </PageWrapper>
   );
 }

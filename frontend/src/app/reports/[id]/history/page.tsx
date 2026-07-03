@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import PageWrapper from "@/components/layout/PageWrapper";
+import { fetchDashboardPackage } from "@/app/dashboard/actions";
 import { 
   ArrowLeft, 
   Download, 
@@ -22,67 +23,124 @@ export default function ReportHistoryPage() {
   const params = useParams();
   const router = useRouter();
 
-  // Mock details
+  const [packageData, setPackageData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      if (params.id) {
+        setIsLoading(true);
+        const { data } = await fetchDashboardPackage(params.id as string);
+        if (data) {
+          setPackageData(data);
+        }
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [params.id]);
+
   const [markupApplied, setMarkupApplied] = useState(false);
 
-  const matchedComponents = [
-    {
-      id: 1,
-      type: "hotel",
-      name: "Cinnamon Wild Yala",
-      details: "3 Nights - Deluxe Room",
-      yourCostEur: 1850,
-      scrapedName: "Cinnamon Wild (Yala Park) - Superior Room",
-      scrapedPlatform: "Agoda",
-      scrapedCostEur: 2100,
-      delta: -11.9,
-      confidence: 98.4,
-      method: "LLM Verified"
-    },
-    {
-      id: 2,
-      type: "excursion",
-      name: "Yala National Park Safari",
-      details: "Half-Day Private Jeep Tour",
-      yourCostEur: 410,
-      scrapedName: "Yala National Park Jeep Excursion (Private)",
-      scrapedPlatform: "Viator",
-      scrapedCostEur: 510,
-      delta: -19.6,
-      confidence: 94.1,
-      method: "Cosine Similarity"
-    },
-    {
-      id: 3,
-      type: "hotel",
-      name: "Cape Weligama",
-      details: "4 Nights - Ocean Villa",
-      yourCostEur: 3100,
-      scrapedName: "Cape Weligama Resort - Premier Ocean Villa",
-      scrapedPlatform: "Booking.com",
-      scrapedCostEur: 4120,
-      delta: -24.8,
-      confidence: 97.2,
-      method: "LLM Verified"
-    },
-    {
-      id: 4,
-      type: "transfer",
-      name: "Southern Transfers Package",
-      details: "Private Premium Van",
-      yourCostEur: 300,
-      scrapedName: "Colombo/Yala/Weligama Private Luxury Chauffeur",
-      scrapedPlatform: "Expedia",
-      scrapedCostEur: 390,
-      delta: -23.1,
-      confidence: 88.5,
-      method: "Rule Matched"
-    }
-  ];
+  const EXCHANGE_RATE = 326.50;
+  const baseLkr = packageData?.total_price_lkr || 1850000;
+  const baseEur = baseLkr / EXCHANGE_RATE;
 
-  const totalDmcEur = matchedComponents.reduce((acc, c) => acc + c.yourCostEur, 0);
-  const totalScrapedEur = matchedComponents.reduce((acc, c) => acc + c.scrapedCostEur, 0);
-  const totalDeltaPct = Math.round(((totalDmcEur - totalScrapedEur) / totalScrapedEur) * 1000) / 10;
+  const matchedComponents = (packageData?.components || []).map((comp: any) => {
+    // Find the latest match
+    const match = comp.matches && comp.matches.length > 0 ? comp.matches[0] : null;
+    const yourCostEur = comp.base_price_lkr / EXCHANGE_RATE;
+    
+    if (match && match.listing) {
+      const scrapedCostEur = match.listing.price;
+      const isUnavailable = scrapedCostEur === null || scrapedCostEur === undefined || scrapedCostEur === 0;
+      const delta = !isUnavailable && scrapedCostEur > 0 ? Math.round(((yourCostEur - scrapedCostEur) / scrapedCostEur) * 1000) / 10 : null;
+      
+      const platformMap: Record<number, string> = { 1: "Booking.com", 2: "Agoda" };
+      const scrapedPlatform = platformMap[match.listing.platform_id] || "Booking.com";
+      
+      return {
+        id: comp.id,
+        type: comp.component_type || "hotel",
+        name: comp.name,
+        details: comp.nights_or_duration ? `${comp.nights_or_duration}` : "1 Night",
+        yourCostEur: Math.round(yourCostEur),
+        scrapedName: match.listing.raw_name,
+        scrapedPlatform: scrapedPlatform,
+        scrapedCostEur: isUnavailable ? null : Math.round(scrapedCostEur),
+        delta: delta,
+        confidence: match.confidence,
+        method: match.match_method === 'llm_verified' ? 'LLM Verified' : match.match_method === 'embedding' ? 'Cosine Similarity' : 'Rule Matched',
+        isUnavailable: isUnavailable
+      };
+    } else {
+      return {
+        id: comp.id,
+        type: comp.component_type || "hotel",
+        name: comp.name,
+        details: comp.nights_or_duration ? `${comp.nights_or_duration}` : "1 Night",
+        yourCostEur: Math.round(yourCostEur),
+        scrapedName: "No Match Found",
+        scrapedPlatform: "N/A",
+        scrapedCostEur: null,
+        delta: null,
+        confidence: 0,
+        method: "None",
+        isUnavailable: true
+      };
+    }
+  });
+
+  const reportsList = (packageData?.reports || [])
+    .map((rep: any) => {
+      const marketNames: Record<number, { name: string; flag: string }> = {
+        1: { name: "Germany (DE)", flag: "🇩🇪" },
+        2: { name: "United Kingdom (GB)", flag: "🇬🇧" },
+        3: { name: "Australia (AU)", flag: "🇦🇺" }
+      };
+      const marketInfo = marketNames[rep.source_market_id] || { name: "Germany (DE)", flag: "🇩🇪" };
+      const dmcRate = `€${Math.round(rep.dmc_price_usd / 1.08).toLocaleString()}`;
+      const marketPrice = rep.market_assembled_price_usd !== null && rep.market_assembled_price_usd !== undefined
+        ? `€${Math.round(rep.market_assembled_price_usd / 1.08).toLocaleString()}`
+        : "N/A";
+      const variance = rep.price_delta_pct !== null && rep.price_delta_pct !== undefined
+        ? `${rep.price_delta_pct > 0 ? "+" : ""}${rep.price_delta_pct}%`
+        : "N/A";
+      const date = new Date(rep.generated_at).toLocaleString();
+      return {
+        date,
+        market: `${marketInfo.name} ${marketInfo.flag}`,
+        dmc: dmcRate,
+        marketPrice,
+        variance,
+        status: rep.status,
+        raw_report: rep
+      };
+    })
+    .sort((a: any, b: any) => new Date(b.raw_report.generated_at).getTime() - new Date(a.raw_report.generated_at).getTime());
+
+  const latestReport = reportsList[0];
+  const lastAuditedStr = latestReport ? latestReport.date : "Never";
+
+  const totalDmcEur = matchedComponents.reduce((acc: number, c: any) => acc + c.yourCostEur, 0);
+  const availableScrapedComponents = matchedComponents.filter((c: any) => !c.isUnavailable);
+  const totalScrapedEur = availableScrapedComponents.reduce((acc: number, c: any) => acc + (c.scrapedCostEur || 0), 0);
+  const totalDmcEurForAvailable = availableScrapedComponents.reduce((acc: number, c: any) => acc + c.yourCostEur, 0);
+  const totalDeltaPct = totalScrapedEur > 0 ? Math.round(((totalDmcEurForAvailable - totalScrapedEur) / totalScrapedEur) * 1000) / 10 : 0;
+  const hasUnavailableComponents = matchedComponents.some((c: any) => c.isUnavailable);
+
+  if (isLoading) {
+    return (
+      <PageWrapper>
+        <div className="flex h-64 items-center justify-center">
+          <div className="flex items-center gap-2 text-sky-500 animate-pulse">
+             <BrainCircuit size={24} className="animate-spin" />
+             <span className="font-bold text-sm">Compiling Report...</span>
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
@@ -113,8 +171,8 @@ export default function ReportHistoryPage() {
           <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
             Audit Result
           </span>
-          <h2 className="text-xl font-bold text-white mt-1">Adventure & Wildlife Safari - 12 Days</h2>
-          <p className="text-xs text-gray-300 mt-0.5">DMC Base Price: LKR 1,850,000 (approx. €5,660)</p>
+          <h2 className="text-xl font-bold text-white mt-1">{packageData?.name}</h2>
+          <p className="text-xs text-gray-300 mt-0.5">DMC Base Price: LKR {baseLkr.toLocaleString()} (approx. €{Math.round(baseEur).toLocaleString()})</p>
         </div>
       </div>
 
@@ -133,7 +191,11 @@ export default function ReportHistoryPage() {
               <div className="flex-1">
                 <h3 className="text-sm font-bold text-white">AI Pricing Gap & Margin Analysis</h3>
                 <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  Your DMC package is currently priced at a <strong className="text-blue-400">{Math.abs(totalDeltaPct)}% gap</strong> under the lowest public price on Booking.com and Agoda in Germany. This analysis identifies margins that can be adjusted manually while remaining below public retail aggregates.
+                  {hasUnavailableComponents ? (
+                    <span>Your DMC package competitiveness is calculated partially. Some components are currently sold out or have no public competitor rate on OTAs.</span>
+                  ) : (
+                    <span>Your DMC package is currently priced at a <strong className="text-blue-400">{Math.abs(totalDeltaPct)}% gap</strong> under the lowest public price on Booking.com and Agoda in Germany. This analysis identifies margins that can be adjusted manually while remaining below public retail aggregates.</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -148,11 +210,15 @@ export default function ReportHistoryPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-gray-300 uppercase font-semibold">Market Sum-of-Parts</span>
-                  <span className="text-sm font-black text-white">€{totalScrapedEur.toLocaleString()}</span>
+                  <span className="text-sm font-black text-white">
+                    €{totalScrapedEur.toLocaleString()}{hasUnavailableComponents ? "*" : ""}
+                  </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-gray-300 uppercase font-semibold">Pricing Gap Opportunity</span>
-                  <span className="text-sm font-black text-emerald-400">+€{Math.round((totalScrapedEur * 0.9 - totalDmcEur))} (at 10% discount)</span>
+                  <span className="text-sm font-black text-emerald-400">
+                    {hasUnavailableComponents ? "N/A (Partial Audit)" : `+€${Math.round((totalScrapedEur * 0.9 - totalDmcEur))} (at 10% discount)`}
+                  </span>
                 </div>
               </div>
 
@@ -169,6 +235,12 @@ export default function ReportHistoryPage() {
                 </span>
               )}
             </div>
+            {hasUnavailableComponents && (
+              <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-center gap-2 mt-2">
+                <AlertTriangle size={12} className="shrink-0" />
+                <span>* Some components are currently Sold Out or unavailable on OTAs. The Market Sum-of-Parts and competitiveness delta calculations exclude these components.</span>
+              </div>
+            )}
           </div>
 
           {/* Component-level Breakdown */}
@@ -179,7 +251,7 @@ export default function ReportHistoryPage() {
             </div>
 
             <div className="flex flex-col gap-4">
-              {matchedComponents.map((comp) => (
+              {matchedComponents.map((comp: any) => (
                 <div key={comp.id} className="p-4 rounded-xl border border-zinc-900 bg-zinc-900/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                   
                   {/* DMC component */}
@@ -219,13 +291,21 @@ export default function ReportHistoryPage() {
                     <span className="text-[10px] text-gray-300 mt-0.5">
                       Confidence: <strong className="text-emerald-400">{comp.confidence}%</strong> ({comp.method})
                     </span>
-                    <span className="text-xs text-amber-500 font-semibold mt-1">€{comp.scrapedCostEur.toLocaleString()}</span>
+                    <span className="text-xs text-amber-500 font-semibold mt-1">
+                      {comp.isUnavailable ? (
+                        <span className="text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] uppercase">
+                          Sold Out / N/A
+                        </span>
+                      ) : (
+                        `€${comp.scrapedCostEur.toLocaleString()}`
+                      )}
+                    </span>
                   </div>
 
                   {/* Price comparison result */}
                   <div className="text-right flex flex-col items-start md:items-end justify-center min-w-[80px]">
-                    <span className="text-xs font-bold text-emerald-400">
-                      {comp.delta}%
+                    <span className={`text-xs font-bold ${comp.isUnavailable ? "text-gray-400" : "text-emerald-400"}`}>
+                      {comp.isUnavailable ? "—" : `${comp.delta > 0 ? "+" : ""}${comp.delta}%`}
                     </span>
                     <span className="text-[10px] text-gray-300">vs OTA price</span>
                   </div>
@@ -257,12 +337,26 @@ export default function ReportHistoryPage() {
               </div>
               <div className="flex justify-between">
                 <span>Last Audited</span>
-                <span className="text-white font-bold">Just now (June 21, 2026)</span>
+                <span className="text-white font-bold">{lastAuditedStr}</span>
               </div>
               <span className="h-px bg-zinc-800" />
               <div className="flex justify-between text-sm">
                 <span className="text-white font-bold">Overall Competitiveness</span>
-                <span className="text-blue-400 font-black">Leakage ({totalDeltaPct}%)</span>
+                <span className={`font-black ${
+                  latestReport?.status === "competitive" 
+                    ? "text-emerald-400" 
+                    : latestReport?.status === "at_risk" 
+                    ? "text-yellow-400" 
+                    : latestReport?.status === "partial"
+                    ? "text-amber-400"
+                    : "text-blue-400"
+                }`}>
+                  {latestReport 
+                    ? latestReport.status === "partial" || latestReport.variance === "N/A"
+                      ? "Partial Audit (N/A)"
+                      : `${latestReport.status === "competitive" ? "Competitive" : latestReport.status === "at_risk" ? "At Risk" : "Leakage"} (${latestReport.variance})` 
+                    : "Pending Audit"}
+                </span>
               </div>
             </div>
           </div>
@@ -300,33 +394,35 @@ export default function ReportHistoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900 text-xs text-gray-300">
-              {[
-                { date: "June 20, 2026 14:32", market: "Germany (DE) 🇩🇪", dmc: "€5,660", marketPrice: "€7,120", variance: "-20.5%", status: "leakage" },
-                { date: "June 12, 2026 09:15", market: "United Kingdom (GB) 🇬🇧", dmc: "€5,660", marketPrice: "€7,290", variance: "-22.4%", status: "leakage" },
-                { date: "May 28, 2026 16:45", market: "Australia (AU) 🇦🇺", dmc: "€5,660", marketPrice: "€7,670", variance: "-26.2%", status: "leakage" },
-              ].map((run, idx) => (
-                <tr key={idx} className="hover:bg-zinc-900/10 transition-colors">
-                  <td className="py-3.5 font-medium text-white">{run.date}</td>
-                  <td className="py-3.5">{run.market}</td>
-                  <td className="py-3.5">{run.dmc}</td>
-                  <td className="py-3.5 font-semibold text-white">{run.marketPrice}</td>
-                  <td className="py-3.5">
-                    <span className={`font-bold ${
-                      run.status === "leakage" ? "text-blue-400" : run.status === "at_risk" ? "text-yellow-400" : "text-emerald-400"
-                    }`}>
-                      {run.variance}
-                    </span>
-                  </td>
-                  <td className="py-3.5 text-right">
-                    <button 
-                      onClick={() => alert(`Restored audit snapshot from ${run.date} for comparison.`)}
-                      className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-[10px] font-bold text-gray-400 hover:text-white transition-colors cursor-pointer"
-                    >
-                      View Snapshot
-                    </button>
-                  </td>
+              {reportsList.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-gray-400">No audits have been executed yet for this package.</td>
                 </tr>
-              ))}
+              ) : (
+                reportsList.map((run: any, idx: number) => (
+                  <tr key={idx} className="hover:bg-zinc-900/10 transition-colors">
+                    <td className="py-3.5 font-medium text-white">{run.date}</td>
+                    <td className="py-3.5">{run.market}</td>
+                    <td className="py-3.5">{run.dmc}</td>
+                    <td className="py-3.5 font-semibold text-white">{run.marketPrice}</td>
+                    <td className="py-3.5">
+                      <span className={`font-bold ${
+                        run.status === "underpriced" || run.status === "margin_leakage" ? "text-blue-400" : run.status === "at_risk" ? "text-yellow-400" : "text-emerald-400"
+                      }`}>
+                        {run.variance}
+                      </span>
+                    </td>
+                    <td className="py-3.5 text-right">
+                      <button 
+                        onClick={() => alert(`Showing selected audit snapshot from ${run.date} for comparison.`)}
+                        className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-[10px] font-bold text-gray-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        View Snapshot
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

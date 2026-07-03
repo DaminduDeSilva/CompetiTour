@@ -4,12 +4,7 @@ import AdminPageWrapper from "@/components/layout/AdminPageWrapper";
 import { Globe, CheckCircle, AlertTriangle, RefreshCw, Save } from "lucide-react";
 
 // TODO(backend): Fetch from GET /admin/ota/platforms
-const initialPlatforms = [
-  { id: "booking",  name: "Booking.com",  module: "booking_scraper.py",  version: "v2.4.1", status: "operational", lastParsed: "June 21, 2026", botRisk: "High",   enabled: true,  notes: "Cloudflare Enterprise. Use residential proxy only." },
-  { id: "agoda",    name: "Agoda",        module: "agoda_scraper.py",    version: "v1.9.3", status: "operational", lastParsed: "June 20, 2026", botRisk: "Medium", enabled: true,  notes: "Akamai bot manager. Stealth mode required." },
-  { id: "expedia",  name: "Expedia",      module: "expedia_scraper.py",  version: "v1.7.0", status: "degraded",    lastParsed: "June 19, 2026", botRisk: "High",   enabled: true,  notes: "Schema changed June 19 — parser update in progress." },
-  { id: "viator",   name: "Viator",       module: "viator_scraper.py",   version: "v1.2.5", status: "operational", lastParsed: "June 21, 2026", botRisk: "Low",    enabled: true,  notes: "No bot manager. ISP proxy sufficient." },
-];
+const initialPlatforms: any[] = [];
 
 const botRiskColor: Record<string, string> = {
   High:   "text-red-400 bg-red-500/10 border-red-500/20",

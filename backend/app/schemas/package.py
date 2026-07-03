@@ -1,50 +1,82 @@
-"""Package schemas."""
-
 from pydantic import BaseModel
-from datetime import datetime
-from decimal import Decimal
 from typing import List, Optional
+from datetime import datetime
 
-class PackageComponentBase(BaseModel):
+class ComponentCreate(BaseModel):
     component_type: str
     name: str
     location: Optional[str] = None
     nights_or_duration: Optional[str] = None
-    base_price_lkr: Optional[Decimal] = None
+    base_price_lkr: float
     notes: Optional[str] = None
 
-class PackageComponentCreate(PackageComponentBase):
-    pass
+class PackageCreate(BaseModel):
+    name: str
+    destination: str
+    duration_days: int
+    total_price_lkr: float
+    components: List[ComponentCreate]
 
-class PackageComponentResponse(PackageComponentBase):
+class OTAListingResponse(BaseModel):
     id: int
-    package_id: int
+    platform_id: Optional[int] = None
+    component_type: str
+    raw_name: str
+    price: Optional[float] = None
+    currency: Optional[str] = None
+    url: Optional[str] = None
 
     class Config:
         from_attributes = True
 
-class DMCPackageBase(BaseModel):
+class ComponentMatchResponse(BaseModel):
+    id: int
+    package_component_id: int
+    ota_listing_id: Optional[int] = None
+    confidence: float
+    match_method: str
+    reviewed: bool
+    listing: Optional[OTAListingResponse] = None
+
+    class Config:
+        from_attributes = True
+
+class ComponentResponse(BaseModel):
+    id: int
+    package_id: int
+    component_type: str
+    name: str
+    location: Optional[str] = None
+    nights_or_duration: Optional[str] = None
+    base_price_lkr: float
+    notes: Optional[str] = None
+    matches: List[ComponentMatchResponse] = []
+
+    class Config:
+        from_attributes = True
+
+class CompetitivenessReportResponse(BaseModel):
+    id: int
+    package_id: int
+    source_market_id: Optional[int] = None
+    dmc_price_usd: float
+    market_assembled_price_usd: Optional[float] = None
+    price_delta_pct: Optional[float] = None
+    status: str
+    generated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class PackageResponse(BaseModel):
+    id: int
     name: str
     destination: str
     duration_days: int
-    total_price_lkr: Decimal
-    status: str = "active"
-
-class DMCPackageCreate(DMCPackageBase):
-    components: List[PackageComponentCreate] = []
-
-class DMCPackageUpdate(BaseModel):
-    name: Optional[str] = None
-    destination: Optional[str] = None
-    duration_days: Optional[int] = None
-    total_price_lkr: Optional[Decimal] = None
-    status: Optional[str] = None
-
-class DMCPackageResponse(DMCPackageBase):
-    id: int
-    dmc_account_id: int
-    created_at: datetime
-    components: List[PackageComponentResponse] = []
+    total_price_lkr: float
+    status: str
+    components: List[ComponentResponse] = []
+    reports: List[CompetitivenessReportResponse] = []
 
     class Config:
         from_attributes = True

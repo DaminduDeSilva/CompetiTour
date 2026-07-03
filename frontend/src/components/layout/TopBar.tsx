@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Bell, Radio, CloudLightning, TrendingDown, AlertTriangle, CheckCircle, Zap } from "lucide-react";
 import { CURRENT_USAGE, getCurrentPlan, getUsagePercent, formatLimit } from "@/lib/quota";
 
+import { createClient } from "@/utils/supabase/client";
+
 // TODO(backend): Fetch from GET /notifications?limit=5&unread=true
 const previewNotifications = [
   { id: 1, type: "leakage",        title: "Margin Leakage",    body: "Adventure & Wildlife Safari underpriced 20.5% in DE",   time: "2m ago",  read: false },
@@ -22,6 +24,7 @@ export default function TopBar() {
   const pathname = usePathname();
   const isAnalyzing = pathname?.includes("/analyze");
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const ref = useRef<HTMLDivElement>(null);
   const unread = previewNotifications.filter(n => !n.read).length;
 
@@ -30,6 +33,18 @@ export default function TopBar() {
   const limit = plan.auditsPerMonth;
   const meterColor = usedPct >= 95 ? "bg-red-500" : usedPct >= 80 ? "bg-amber-400" : "bg-sky-500";
   const textColor = usedPct >= 95 ? "text-red-400" : usedPct >= 80 ? "text-amber-400" : "text-sky-400";
+
+  // Fetch dynamic user
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        setUser(data.user);
+      }
+    };
+    fetchUser();
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -130,11 +145,13 @@ export default function TopBar() {
         {/* User Card */}
         <div className="flex items-center gap-3 pl-2 border-l border-zinc-800">
           <div className="flex flex-col text-right">
-            <span className="text-xs font-bold text-white">Horizon DMC</span>
-            <span className="text-[10px] text-gray-300 font-medium">Standard Account</span>
+            <span className="text-xs font-bold text-white">{user?.email || "DMC User"}</span>
+            <span className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">
+              {user ? "DMC Partner" : "Not Logged In"}
+            </span>
           </div>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-bold text-white text-xs">
-            HD
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-bold text-white text-xs uppercase">
+            {user?.email ? user.email.substring(0, 2) : "ME"}
           </div>
         </div>
       </div>

@@ -1,18 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageWrapper from "@/components/layout/PageWrapper";
 import { Bell, TrendingDown, AlertTriangle, CheckCircle, Info, X } from "lucide-react";
-
-// TODO(backend): Fetch from GET /notifications?tenant_id=<jwt>&page=1&limit=20
-const notifications = [
-  { id: 1, type: "leakage", title: "Margin Leakage Detected", body: "Adventure & Wildlife Safari – 12 Days is underpriced by 20.5% in Germany (DE). Market sum-of-parts: €7,120 vs your rate €5,660.", time: "June 21, 2026 09:32", read: false },
-  { id: 2, type: "audit_complete", title: "Audit Complete", body: "Pricing audit for Cultural Triangle & Beach – 7 Days in Germany (DE) completed. Status: At Risk (+3.2%).", time: "June 20, 2026 14:13", read: false },
-  { id: 3, type: "at_risk", title: "Package At Risk", body: "Classic Sri Lanka Tour – 10 Days is priced above OTA assembly by +3.0% in the United Kingdom market.", time: "June 20, 2026 11:46", read: true },
-  { id: 4, type: "audit_complete", title: "Audit Complete", body: "Adventure & Wildlife Safari – 12 Days audit in United Kingdom completed. Status: Leakage (–22.4%).", time: "June 19, 2026 16:31", read: true },
-  { id: 5, type: "leakage", title: "Severe Margin Leakage", body: "Adventure & Wildlife Safari – 12 Days is underpriced by 26.2% in Australia (AU). Immediate review recommended.", time: "June 16, 2026 13:23", read: true },
-  { id: 6, type: "info", title: "New Market Available", body: "Japan (JP) is now available as a target source market. Configure it in your package audit settings.", time: "June 15, 2026 08:00", read: true },
-  { id: 7, type: "audit_complete", title: "Audit Complete", body: "Luxury Boutique Getaway – 5 Days audit in Germany completed. Status: Competitive (–9.2%).", time: "June 14, 2026 10:01", read: true },
-];
+import { fetchDashboardPackages, fetchCurrentUserProfile } from "@/app/dashboard/actions";
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
   leakage:       { icon: <TrendingDown size={16} />,    color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20" },
@@ -22,9 +12,71 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string; bg: str
 };
 
 export default function NotificationsPage() {
-  const [items, setItems] = useState(notifications);
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [companyName, setCompanyName] = useState("Horizon DMC");
 
-  // TODO(backend): PATCH /notifications/{id}/read
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Fetch company profile name
+        const profileRes = await fetchCurrentUserProfile();
+        if (profileRes?.user?.company_name) {
+          setCompanyName(profileRes.user.company_name);
+        }
+
+        // Fetch reports
+        const { packages } = await fetchDashboardPackages();
+        if (packages) {
+          const extractedNotifications = packages.flatMap((pkg: any) => {
+            return (pkg.reports || []).map((rep: any) => {
+              const marketNames: Record<number, { name: string; flag: string; code: string }> = {
+                1: { name: "Germany", flag: "🇩🇪", code: "DE" },
+                2: { name: "United Kingdom", flag: "🇬🇧", code: "GB" },
+                3: { name: "Australia", flag: "🇦🇺", code: "AU" }
+              };
+              const marketInfo = marketNames[rep.source_market_id] || { name: "Germany", flag: "🇩🇪", code: "DE" };
+              const varianceVal = rep.price_delta_pct;
+              const varianceStr = `${varianceVal > 0 ? "+" : ""}${varianceVal}%`;
+              
+              let type = "audit_complete";
+              let title = "Audit Complete";
+              let body = `Pricing audit for ${pkg.name} in ${marketInfo.name} (${marketInfo.code}) completed. Status: Competitive (${varianceStr}).`;
+
+              if (rep.status === "at_risk") {
+                type = "at_risk";
+                title = "Package At Risk";
+                body = `${pkg.name} is priced above OTA assembly by ${varianceStr} in the ${marketInfo.name} market.`;
+              } else if (rep.status === "underpriced" || rep.status === "margin_leakage") {
+                type = "leakage";
+                title = "Margin Leakage Detected";
+                body = `${pkg.name} is underpriced by ${varianceStr} in ${marketInfo.name} (${marketInfo.code}). Market sum-of-parts: €${Math.round(rep.market_assembled_price_usd / 1.08).toLocaleString()} vs your rate €${Math.round(rep.dmc_price_usd / 1.08).toLocaleString()}.`;
+              }
+
+              return {
+                id: rep.id,
+                type,
+                title,
+                body,
+                time: new Date(rep.generated_at).toLocaleString(),
+                read: false
+              };
+            });
+          });
+
+          // Sort by time descending
+          extractedNotifications.sort((a: any, b: any) => new Date(b.time).getTime() - new Date(a.time).getTime());
+          setItems(extractedNotifications);
+        }
+      } catch (err) {
+        console.error("Failed to load notifications:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   const markAllRead = () => setItems((prev) => prev.map((n) => ({ ...n, read: true })));
   const dismiss = (id: number) => setItems((prev) => prev.filter((n) => n.id !== id));
 
@@ -42,7 +94,7 @@ export default function NotificationsPage() {
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-sky-500 text-black">{unread}</span>
             )}
           </h2>
-          <p className="text-xs text-gray-300 mt-1">Audit alerts and system events for Horizon DMC</p>
+          <p className="text-xs text-gray-300 mt-1">Audit alerts and system events for {companyName}</p>
         </div>
         {unread > 0 && (
           <button onClick={markAllRead}
@@ -54,8 +106,12 @@ export default function NotificationsPage() {
 
       {/* Notification List */}
       <div className="flex flex-col gap-3">
-        {items.map((n) => {
-          const tc = typeConfig[n.type];
+        {loading ? (
+          <div className="text-center py-16 text-gray-400">
+            <p className="text-sm">Loading notifications...</p>
+          </div>
+        ) : items.map((n) => {
+          const tc = typeConfig[n.type] || typeConfig.info;
           return (
             <div key={n.id}
               className={`p-5 rounded-2xl border backdrop-blur-md flex items-start gap-4 transition-all ${
@@ -80,7 +136,7 @@ export default function NotificationsPage() {
             </div>
           );
         })}
-        {items.length === 0 && (
+        {!loading && items.length === 0 && (
           <div className="text-center py-16 text-gray-400">
             <Bell size={32} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">All caught up — no notifications.</p>

@@ -4,20 +4,9 @@ import AdminPageWrapper from "@/components/layout/AdminPageWrapper";
 import { Cpu, RefreshCw, XCircle, CheckCircle, Clock, Radio } from "lucide-react";
 
 // TODO(backend): Fetch from GET /admin/workers + GET /admin/jobs with polling (ws or 5s interval)
-const initialWorkers = [
-  { id: "w-001", hostname: "scraper-worker-01", status: "busy", job: "Adventure & Wildlife Safari (DE)", tenant: "Horizon DMC", cpu: 72, mem: 58, uptime: "4h 22m" },
-  { id: "w-002", hostname: "scraper-worker-02", status: "busy", job: "Jetwing Surf Experience (DE)", tenant: "Jetwing Travels", cpu: 64, mem: 51, uptime: "4h 22m" },
-  { id: "w-003", hostname: "scraper-worker-03", status: "idle", job: "—", tenant: "—", cpu: 3, mem: 22, uptime: "4h 22m" },
-  { id: "w-004", hostname: "scraper-worker-04", status: "busy", job: "Japan & Sri Lanka Twin (JP)", tenant: "Walkers Tours", cpu: 81, mem: 63, uptime: "4h 22m" },
-  { id: "w-005", hostname: "scraper-worker-05", status: "idle", job: "—", tenant: "—", cpu: 2, mem: 21, uptime: "2h 11m" },
-  { id: "w-006", hostname: "scraper-worker-06", status: "error", job: "Cultural Triangle & Beach (GB)", tenant: "Horizon DMC", cpu: 0, mem: 45, uptime: "0m (crashed)" },
-];
+const initialWorkers: any[] = [];
 
-const jobQueue = [
-  { runId: "audit-0041", pkg: "Hill Country & Tea Trails", tenant: "Horizon DMC", market: "🇬🇧 UK", status: "queued", queued: "30s ago" },
-  { runId: "audit-0042", pkg: "Cultural Heritage Tour", tenant: "Jetwing Travels", market: "🇫🇷 France", status: "queued", queued: "1m ago" },
-  { runId: "audit-0040", pkg: "Cultural Triangle & Beach", tenant: "Horizon DMC", market: "🇬🇧 UK", status: "running", queued: "3m ago" },
-];
+const jobQueue: any[] = [];
 
 const workerStatusConfig: Record<string, { label: string; color: string; dot: string }> = {
   busy:  { label: "Busy",  color: "text-amber-400 bg-amber-500/10 border-amber-500/20",   dot: "bg-amber-400" },

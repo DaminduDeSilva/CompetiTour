@@ -18,6 +18,7 @@ class ComponentMatch(Base):
 
     # Relationships
     component = relationship("PackageComponent", back_populates="matches")
+    listing = relationship("OTAListing")
 
     __table_args__ = (
         Index("idx_component_matches_pkg", "package_component_id"),

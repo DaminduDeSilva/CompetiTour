@@ -95,7 +95,7 @@ export default function Home() {
 
         {/* Actions */}
         <div className="hidden sm:flex items-center gap-6">
-          <Link href="/dashboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+          <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
             Login
           </Link>
           <Link
@@ -125,7 +125,7 @@ export default function Home() {
           <Link href="#" className="text-lg font-semibold text-gray-200 border-b border-zinc-800 pb-3">Pricing</Link>
           <Link href="#" className="text-lg font-semibold text-gray-200 border-b border-zinc-800 pb-3">Company</Link>
           <div className="flex flex-col gap-4 mt-8">
-            <Link href="/dashboard" className="w-full text-center py-3 rounded-xl border border-zinc-800 text-gray-200 font-semibold hover:bg-zinc-900 transition-colors">
+            <Link href="/login" className="w-full text-center py-3 rounded-xl border border-zinc-800 text-gray-200 font-semibold hover:bg-zinc-900 transition-colors">
               Login
             </Link>
             <Link href="#" className="w-full text-center py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold">
@@ -164,7 +164,7 @@ export default function Home() {
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-6">
             <Link
-              href="/dashboard"
+              href="/login"
               className="inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-bold text-white bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 shadow-xl shadow-sky-500/10 hover:shadow-sky-500/20 transition-all group"
             >
               <span>Explore Platform</span>

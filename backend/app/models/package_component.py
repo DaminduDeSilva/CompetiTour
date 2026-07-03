@@ -20,4 +20,4 @@ class PackageComponent(Base):
 
     # Relationships
     package = relationship("DMCPackage", back_populates="components")
-    matches = relationship("ComponentMatch", back_populates="component")
+    matches = relationship("ComponentMatch", back_populates="component", cascade="all, delete-orphan")

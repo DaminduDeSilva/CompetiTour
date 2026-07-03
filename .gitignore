@@ -2,9 +2,12 @@
 .env
 .env.local
 .env.production
+.env.*.local
 
 # Local agent tooling
 .agent/
+.agents/
+.codex/
 
 # Python
 __pycache__/
@@ -49,5 +52,17 @@ coverage/
 *.log
 logs/
 
+# Screenshots / debug images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
 # Alembic
 alembic/versions/__pycache__/
+
+# One-shot debug & test scripts (frontend root)
+frontend/test_*.js
+frontend/parse_jwt.js
+frontend/test_db.js

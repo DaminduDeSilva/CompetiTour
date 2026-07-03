@@ -14,23 +14,21 @@ import {
   Navigation,
   Compass
 } from "lucide-react";
+import { createDashboardPackage } from "@/app/dashboard/actions";
 
 export default function NewPackagePage() {
   const router = useRouter();
 
+  const [loading, setLoading] = useState(false);
+
   // Basic Details
-  const [name, setName] = useState("Southern Coast Surf & Safaris");
-  const [destination, setDestination] = useState("Sri Lanka");
-  const [duration, setDuration] = useState(8);
-  const [totalPriceLkr, setTotalPriceLkr] = useState(1350000);
+  const [name, setName] = useState("");
+  const [destination, setDestination] = useState("");
+  const [duration, setDuration] = useState(1);
+  const [totalPriceLkr, setTotalPriceLkr] = useState(0);
 
   // Components List
-  const [components, setComponents] = useState([
-    { id: 1, type: "hotel", name: "Cinnamon Wild Yala", details: "3 Nights - Deluxe Room", cost: 450000 },
-    { id: 2, type: "excursion", name: "Yala National Park Safari", details: "Half-Day Private Jeep Tour", cost: 120000 },
-    { id: 3, type: "hotel", name: "Cape Weligama", details: "4 Nights - Ocean Villa", cost: 680000 },
-    { id: 4, type: "transfer", name: "Colombo to Yala & Weligama Transfer", details: "Private Premium Van", cost: 100000 },
-  ]);
+  const [components, setComponents] = useState<{ id: number; type: string; name: string; details: string; cost: number }[]>([]);
 
   const removeComponent = (id: number) => {
     setComponents(components.filter((c) => c.id !== id));
@@ -38,27 +36,41 @@ export default function NewPackagePage() {
 
   const addComponent = (type: string) => {
     const newId = components.length > 0 ? Math.max(...components.map((c) => c.id)) + 1 : 1;
-    let newComp = { id: newId, type, name: "", details: "", cost: 0 };
-    if (type === "hotel") {
-      newComp.name = "Amangalla Galle";
-      newComp.details = "1 Night - Garden Suite";
-      newComp.cost = 250000;
-    } else if (type === "excursion") {
-      newComp.name = "Galle Fort Historic Walk";
-      newComp.details = "Private Guide tour";
-      newComp.cost = 45000;
-    } else {
-      newComp.name = "Airport Airport Pick-up";
-      newComp.details = "Luxury Sedan Transfer";
-      newComp.cost = 40000;
-    }
-    setComponents([...components, newComp]);
+    setComponents([...components, { id: newId, type, name: "", details: "", cost: 0 }]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API registration, then route to the real-time analyzer simulation
-    router.push("/packages/3/analyze");
+    setLoading(true);
+
+    try {
+      const payload = {
+        name,
+        destination,
+        duration_days: duration,
+        total_price_lkr: totalPriceLkr,
+        components: components.map(c => ({
+          component_type: c.type,
+          name: c.name,
+          nights_or_duration: c.details,
+          base_price_lkr: c.cost,
+        }))
+      };
+
+      const res = await createDashboardPackage(payload);
+
+      if (res.success) {
+        // Route back to dashboard since audit feature is pending backend implementation
+        router.push(`/dashboard`);
+      } else {
+        alert("Failed to save package");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving package");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -266,7 +278,7 @@ export default function NewPackagePage() {
               type="submit"
               className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-sm font-bold text-white shadow-xl shadow-sky-500/10 hover:shadow-sky-500/20 active:scale-95 transition-all cursor-pointer"
             >
-              <span>Save & Proceed to Audit</span>
+              <span>{loading ? "Saving..." : "Save & Proceed to Audit"}</span>
               <ChevronRight size={16} />
             </button>
           </div>

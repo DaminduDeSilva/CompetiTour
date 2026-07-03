@@ -17,6 +17,10 @@ import app.models  # Ensures all models are imported
 # access to the values within the .ini file in use.
 config = context.config
 
+from app.config import get_settings
+settings = get_settings()
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace('%', '%%'))
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -54,6 +58,7 @@ async def run_async_migrations() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"statement_cache_size": 0}
     )
 
     async with connectable.connect() as connection:

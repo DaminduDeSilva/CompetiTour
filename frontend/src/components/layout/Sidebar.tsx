@@ -1,4 +1,5 @@
 "use client";
+import { signout } from "@/app/login/actions";
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -77,13 +78,15 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <Link
-          href="/login"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-red-400 hover:bg-red-500/5 transition-all"
-        >
-          <LogOut size={18} />
-          <span>Sign Out</span>
-        </Link>
+        <form action={signout}>
+          <button
+            type="submit"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:text-red-400 hover:bg-red-500/5 transition-all"
+          >
+            <LogOut size={18} />
+            <span>Sign Out</span>
+          </button>
+        </form>
       </div>
     </aside>
   );
