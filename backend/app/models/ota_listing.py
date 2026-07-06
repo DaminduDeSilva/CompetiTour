@@ -1,6 +1,7 @@
 """OTA Listing model — scraped travel data from OTA platforms."""
 
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Index, func
+from pgvector.sqlalchemy import Vector
 
 from app.database import Base
 
@@ -20,6 +21,7 @@ class OTAListing(Base):
     price_usd = Column(Numeric(12, 2))                      # normalized for comparison
     url = Column(String)
     captured_at = Column(DateTime(timezone=True), server_default=func.now())
+    embedding = Column(Vector(1024), nullable=True)
 
     __table_args__ = (
         Index("idx_ota_listings_captured", "captured_at"),

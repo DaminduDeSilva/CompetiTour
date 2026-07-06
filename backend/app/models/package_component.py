@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 
 from app.database import Base
 
@@ -17,6 +18,7 @@ class PackageComponent(Base):
     nights_or_duration = Column(String)
     base_price_lkr = Column(Numeric(12, 2))
     notes = Column(String)
+    embedding = Column(Vector(1024), nullable=True)
 
     # Relationships
     package = relationship("DMCPackage", back_populates="components")

@@ -8,36 +8,34 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "python-multipart>=0.0.9",
-
     # Database
     "sqlalchemy[asyncio]>=2.0.30",
     "asyncpg>=0.29.0",
     "alembic>=1.13.0",
     "greenlet>=3.0.0",
-
     # Redis + Task Queue
     "redis>=5.0.0",
     "arq>=0.26.0",
-
     # Auth
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
-
     # Scraping
     "playwright>=1.45.0",
     "playwright-stealth>=1.0.6",
-
     # AI / Matching
     "google-generativeai>=0.8.0",
-
     # Utilities
     "pydantic-settings>=2.3.0",
     "httpx>=0.27.0",
     "python-dotenv>=1.0.0",
-
     # Report generation
     "reportlab>=4.2.0",
     "openpyxl>=3.1.0",
+    "email-validator>=2.3.0",
+    "google-genai>=2.10.0",
+    "pgvector>=0.4.2",
+    "torch>=2.12.1",
+    "sentence-transformers>=5.6.0",
 ]
 
 [project.optional-dependencies]
@@ -58,3 +56,9 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 [tool.setuptools.packages.find]
 include = ["app*", "workers*", "scripts*"]
+
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
