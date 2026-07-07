@@ -21,6 +21,9 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     # Scraping (anti-detect Firefox via invisible_playwright)
     "invisible_playwright @ git+https://github.com/feder-cr/invisible_playwright.git",
+    # Scraping
+    "playwright>=1.45.0",
+    "playwright-stealth>=1.0.6",
     # AI / Matching
     "google-generativeai>=0.8.0",
     # Utilities
@@ -32,6 +35,9 @@ dependencies = [
     "openpyxl>=3.1.0",
     "email-validator>=2.3.0",
     "google-genai>=2.10.0",
+    "pgvector>=0.4.2",
+    "torch>=2.12.1",
+    "sentence-transformers>=5.6.0",
 ]
 
 [project.optional-dependencies]
@@ -52,3 +58,9 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 [tool.setuptools.packages.find]
 include = ["app*", "workers*", "scripts*"]
+
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+import logging
+
+from ai.embedder import EmbeddingService
 from app.database import get_db
 from app.models.dmc_package import DMCPackage
 from app.models.package_component import PackageComponent
@@ -11,6 +14,8 @@ from app.api.deps import get_current_user
 from app.models.user import User
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+embedding_service = EmbeddingService()
 
 @router.post("/", response_model=PackageResponse)
 async def create_package(
@@ -33,6 +38,7 @@ async def create_package(
     await db.flush()  # To get the new_package.id
     
     # Create the components
+    created_components = []
     for comp in package_data.components:
         new_comp = PackageComponent(
             package_id=new_package.id,
@@ -42,6 +48,19 @@ async def create_package(
             base_price_lkr=comp.base_price_lkr
         )
         db.add(new_comp)
+        created_components.append(new_comp)
+
+    await db.flush()
+
+    if created_components:
+        try:
+            embeddings = embedding_service.embed([component.name for component in created_components])
+        except Exception as e:
+            logger.warning(f"Failed to embed package components for package {new_package.id}: {e}")
+            embeddings = [None] * len(created_components)
+
+        for idx, component in enumerate(created_components):
+            component.embedding = embeddings[idx] if idx < len(embeddings) else None
         
     await db.commit()
     
