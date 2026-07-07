@@ -43,16 +43,18 @@ from app.database import async_session_factory as AsyncSessionLocal
 from app.models.dmc_package import DMCPackage
 from app.models.package_component import PackageComponent
 from app.models.competitiveness_report import CompetitivenessReport
-from app.models.component_match import ComponentMatch
 from app.models.analysis_job import AnalysisJob
+from app.models.ota_listing import OTAListing
 from app.config import get_settings
 
 from scrapers.extractors.booking_scraper import BookingComScraper, HotelResult
 from scrapers.extractors.agoda_scraper import AgodaScraper, AgodaHotelResult
-from ai.matcher import ItineraryMatcher
+from ai.embedder import EmbeddingService
+from workers.matching.pipeline import match_component
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+embedding_service = EmbeddingService()
 
 # LKR → EUR approximate exchange rate.
 # Override via EXCHANGE_RATE_LKR_EUR in .env for precision.
@@ -109,14 +111,18 @@ def _determine_status(delta_pct: float) -> str:
         return "competitive"
 
 
+def _build_listing_text(raw_name: str, raw_description: Optional[str] = None) -> str:
+    return f"{raw_name} {raw_description or ''}".strip()
+
+
 from datetime import date
 
 async def _scrape_and_match_component(
+    db: AsyncSession,
     component: PackageComponent,
     source_market: str,
     locale: str,
     nights: int,
-    matcher: ItineraryMatcher,
     checkin_date: Optional[date] = None,
 ) -> ComponentAuditResult:
     """
@@ -173,12 +179,48 @@ async def _scrape_and_match_component(
             matched_url=None,
         )
 
+    market_id_map = {"DE": 1, "GB": 2, "AU": 3}
+    src_mkt_id = market_id_map.get(source_market.upper(), 1)
+    platform_id_map = {"Booking.com": 1, "Agoda": 2}
+
+    persisted_listings: list[OTAListing] = []
+    for ota_result in all_ota_results:
+        listing = OTAListing(
+            platform_id=platform_id_map.get(getattr(ota_result, "platform", None), 1),
+            source_market_id=src_mkt_id,
+            component_type=component.component_type,
+            raw_name=ota_result.name,
+            raw_description=getattr(ota_result, "room_type", None),
+            price=ota_result.total_price,
+            currency=ota_result.currency,
+            price_usd=round(ota_result.total_price * 1.08, 2) if ota_result.total_price else None,
+            url=ota_result.url,
+        )
+        persisted_listings.append(listing)
+
+    try:
+        embeddings = embedding_service.embed(
+            [
+                _build_listing_text(listing.raw_name, listing.raw_description)
+                for listing in persisted_listings
+            ]
+        )
+    except Exception as e:
+        logger.warning(f"[Audit] Failed to embed OTA scrape batch for '{component_name}': {e}")
+        embeddings = [None] * len(persisted_listings)
+
+    for idx, listing in enumerate(persisted_listings):
+        listing.embedding = embeddings[idx] if idx < len(embeddings) else None
+        db.add(listing)
+
+    await db.flush()
+
     # --- Step 2: AI Matching ---
-    ota_names = [r.name for r in all_ota_results]
-    match_result = matcher.match_hotels(component_name, ota_names)
+    match_result = await match_component(db=db, component=component, source_market_id=src_mkt_id)
 
     matched_name = match_result.get("matched_hotel")
     confidence = float(match_result.get("confidence", 0))
+    match_method = str(match_result.get("match_method", "embedding_gemini_hybrid"))
 
     if not matched_name:
         logger.warning(f"[Audit] No AI match found for '{component_name}' against OTA results.")
@@ -190,19 +232,21 @@ async def _scrape_and_match_component(
             ota_price_eur=None,
             platform=None,
             confidence=confidence,
-            match_method="llm_verified",
+            match_method=match_method,
             price_delta_pct=None,
             matched_url=None,
         )
 
     # --- Step 3: Find the price for the matched hotel ---
-    matched_ota = next(
-        (r for r in all_ota_results if r.name == matched_name),
-        None
-    )
+    matched_ota = None
+    matched_listing_id = match_result.get("ota_listing_id")
+    if matched_listing_id is not None:
+        matched_ota = next((r for r in persisted_listings if r.id == matched_listing_id), None)
+    if matched_ota is None:
+        matched_ota = next((r for r in persisted_listings if r.raw_name == matched_name), None)
 
-    ota_price_eur = matched_ota.total_price if matched_ota else None
-    platform = matched_ota.platform if matched_ota else None
+    ota_price_eur = float(matched_ota.price) if matched_ota and matched_ota.price is not None else None
+    platform = next((name for name, pid in platform_id_map.items() if matched_ota and matched_ota.platform_id == pid), None)
     matched_url = getattr(matched_ota, "url", None) if matched_ota else None
 
     # --- Fallback: Scrape hotel detail page directly if price is missing ---
@@ -240,7 +284,7 @@ async def _scrape_and_match_component(
         ota_price_eur=ota_price_eur,
         platform=platform,
         confidence=confidence,
-        match_method="llm_verified",
+        match_method=match_method,
         price_delta_pct=price_delta_pct,
         matched_url=matched_url,
     )
@@ -305,7 +349,6 @@ async def run_audit(
             days_to_add = (2 - base_date.weekday()) % 7
             checkin_date = base_date + timedelta(days=days_to_add)
 
-            matcher = ItineraryMatcher()
             component_results: list[ComponentAuditResult] = []
             
             best_results = []
@@ -330,11 +373,11 @@ async def run_audit(
                             nights = 1
 
                     result = await _scrape_and_match_component(
+                        db=db,
                         component=component,
                         source_market=source_market,
                         locale=locale,
                         nights=nights,
-                        matcher=matcher,
                         checkin_date=checkin_date,
                     )
                     component_results.append(result)
@@ -394,40 +437,6 @@ async def run_audit(
                 if job:
                     job.status = "reporting"
                     await db.commit()
-
-            # Save individual component matches to DB
-            for result in component_results:
-                if result.matched_hotel_name and result.confidence > 70:
-                    # Resolve source_market_id & platform_id
-                    market_id_map = {"DE": 1, "GB": 2, "AU": 3}
-                    src_mkt_id = market_id_map.get(source_market.upper(), 1)
-                    
-                    platform_id_map = {"Booking.com": 1, "Agoda": 2}
-                    plat_id = platform_id_map.get(result.platform, 1)
-
-                    from app.models.ota_listing import OTAListing
-                    comp_type = next((c.component_type for c in package.components if c.id == result.component_id), "hotel")
-                    ota_list_record = OTAListing(
-                        platform_id=plat_id,
-                        source_market_id=src_mkt_id,
-                        component_type=comp_type,
-                        raw_name=result.matched_hotel_name,
-                        price=result.ota_price_eur,
-                        currency="EUR",
-                        price_usd=round(result.ota_price_eur * 1.08, 2) if result.ota_price_eur else None,
-                        url=result.matched_url,
-                    )
-                    db.add(ota_list_record)
-                    await db.flush()  # Populates ota_list_record.id
-
-                    match_record = ComponentMatch(
-                        package_component_id=result.component_id,
-                        ota_listing_id=ota_list_record.id,
-                        confidence=result.confidence,
-                        match_method=result.match_method,
-                        reviewed=False,
-                    )
-                    db.add(match_record)
 
             # --- Aggregate results ---
             matched_results = [r for r in component_results if r.ota_price_eur is not None]
