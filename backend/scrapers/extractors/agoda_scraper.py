@@ -8,7 +8,7 @@ Usage (standalone test):
     python -m scrapers.extractors.agoda_scraper --destination "Cinnamon Wild Yala" --locale de-DE
 
 Architecture:
-    - Uses ScraperBrowser (Playwright + playwright-stealth) via ISP proxy for sticky sessions
+    - Uses ScraperBrowser (invisible_playwright anti-detect Firefox) via ISP proxy for sticky sessions
     - Agoda uses heavier bot detection (Akamai), so stealth mode + ISP proxy is recommended
     - Parses listing cards for: property name, room type, nightly rate, currency
 """
@@ -42,11 +42,11 @@ class AgodaHotelResult:
 
 class AgodaScraper:
     """
-    Playwright-based scraper for Agoda hotel search results.
+    Anti-detect Firefox-based scraper for Agoda hotel search results.
 
     Agoda is significantly harder to scrape than Booking.com due to Akamai bot
-    protection. We use ISP proxies (sticky session) + full playwright-stealth to
-    blend in as a regular browser session.
+    protection. We use ISP proxies (sticky session) + invisible_playwright (anti-detect
+    Firefox) to blend in as a regular browser session.
     """
 
     BASE_URL = "https://www.agoda.com/search"

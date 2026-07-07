@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir -e ".[dev]"
 
-# Install Playwright browsers
-RUN playwright install chromium --with-deps
+# Fetch anti-detect Firefox binary for invisible_playwright
+RUN python -m invisible_playwright fetch
 
 # Copy application code
 COPY . .

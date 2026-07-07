@@ -19,9 +19,8 @@ dependencies = [
     # Auth
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
-    # Scraping
-    "playwright>=1.45.0",
-    "playwright-stealth>=1.0.6",
+    # Scraping (anti-detect Firefox via invisible_playwright)
+    "invisible_playwright @ git+https://github.com/feder-cr/invisible_playwright.git",
     # AI / Matching
     "google-generativeai>=0.8.0",
     # Utilities

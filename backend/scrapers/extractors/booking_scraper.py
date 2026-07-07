@@ -8,7 +8,7 @@ Usage (standalone test):
     python -m scrapers.extractors.booking_scraper --destination "Yala National Park" --locale de-DE
 
 Architecture:
-    - Uses ScraperBrowser (Playwright + playwright-stealth) for anti-bot evasion
+    - Uses ScraperBrowser (invisible_playwright anti-detect Firefox) for anti-bot evasion
     - Routes through Torch Labs residential proxy geotargeted to the source market
     - Parses listing cards for: property name, room type, price per night, currency
     - Returns a list of HotelResult dataclass objects
@@ -44,7 +44,7 @@ class HotelResult:
 
 class BookingComScraper:
     """
-    Playwright-based scraper for Booking.com hotel search results.
+    Anti-detect Firefox-based scraper for Booking.com hotel search results.
 
     Designed for geotargeted proxy use — pass the source market locale
     (e.g. 'de-DE', 'en-GB', 'en-AU') to match the pricing that travelers
