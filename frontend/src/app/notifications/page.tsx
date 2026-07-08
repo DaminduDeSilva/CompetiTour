@@ -50,7 +50,7 @@ export default function NotificationsPage() {
               } else if (rep.status === "underpriced" || rep.status === "margin_leakage") {
                 type = "leakage";
                 title = "Margin Leakage Detected";
-                body = `${pkg.name} is underpriced by ${varianceStr} in ${marketInfo.name} (${marketInfo.code}). Market sum-of-parts: €${Math.round(rep.market_assembled_price_usd / 1.08).toLocaleString()} vs your rate €${Math.round(rep.dmc_price_usd / 1.08).toLocaleString()}.`;
+                body = `${pkg.name} is underpriced by ${varianceStr} in ${marketInfo.name} (${marketInfo.code}). Market sum-of-parts: $${Math.round(rep.market_assembled_price_usd / 1.08).toLocaleString()} vs your rate $${Math.round(rep.dmc_price_usd / 1.08).toLocaleString()}.`;
               }
 
               return {

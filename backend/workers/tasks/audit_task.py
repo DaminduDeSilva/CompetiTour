@@ -24,8 +24,8 @@ Usage:
         await arq_pool.enqueue_job("run_audit", package_id=1, source_market="DE")
 
 Exchange Rate:
-    LKR → EUR conversion uses a configurable rate in .env (EXCHANGE_RATE_LKR_EUR).
-    Default: 326.50 (approximate mid-2026 rate).
+    LKR → USD conversion uses a configurable rate in .env (EXCHANGE_RATE_LKR_USD).
+    Default: 305.00 (approximate mid-2026 rate).
 """
 
 import asyncio
@@ -51,12 +51,34 @@ from scrapers.extractors.booking_scraper import BookingComScraper, HotelResult
 from scrapers.extractors.agoda_scraper import AgodaScraper, AgodaHotelResult
 from ai.matcher import ItineraryMatcher
 
+import time
+import httpx
+
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# LKR → EUR approximate exchange rate.
-# Override via EXCHANGE_RATE_LKR_EUR in .env for precision.
-EXCHANGE_RATE_LKR_EUR: float = getattr(settings, "EXCHANGE_RATE_LKR_EUR", 326.50)
+_cached_rate = getattr(settings, "EXCHANGE_RATE_LKR_USD", None)
+_rate_fetch_time = 0
+
+async def get_lkr_to_usd_rate() -> float:
+    global _cached_rate, _rate_fetch_time
+    now = time.time()
+    if _cached_rate and (now - _rate_fetch_time < 3600):
+        return _cached_rate
+
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get("https://open.er-api.com/v6/latest/USD", timeout=5.0)
+            if res.status_code == 200:
+                _cached_rate = float(res.json()["rates"]["LKR"])
+                _rate_fetch_time = now
+                logger.info(f"[Currency] Fetched live exchange rate: 1 USD = {_cached_rate} LKR")
+                return _cached_rate
+    except Exception as e:
+        logger.warning(f"[Currency] Failed to fetch live rate: {e}")
+
+    _cached_rate = getattr(settings, "EXCHANGE_RATE_LKR_USD", 305.00)
+    return _cached_rate
 
 
 @dataclass
@@ -64,9 +86,9 @@ class ComponentAuditResult:
     """The result of auditing a single package component against OTA sources."""
     component_id: int
     component_name: str
-    dmc_price_eur: float
+    dmc_price_usd: float
     matched_hotel_name: Optional[str]
-    ota_price_eur: Optional[float]
+    ota_price_usd: Optional[float]
     platform: Optional[str]
     confidence: float
     match_method: str
@@ -80,16 +102,14 @@ class AuditSummary:
     """Aggregated audit result for the full package."""
     package_id: int
     source_market: str
-    dmc_total_eur: float
-    market_total_eur: float
+    dmc_total_usd: float
+    market_total_usd: float
     overall_delta_pct: float
     status: str                          # 'competitive' | 'at_risk' | 'margin_leakage'
     component_results: list[ComponentAuditResult]
 
 
-def _lkr_to_eur(lkr: float) -> float:
-    """Convert LKR to EUR using the configured exchange rate."""
-    return round(lkr / EXCHANGE_RATE_LKR_EUR, 2)
+
 
 
 def _determine_status(delta_pct: float) -> str:
@@ -117,6 +137,7 @@ async def _scrape_and_match_component(
     locale: str,
     nights: int,
     matcher: ItineraryMatcher,
+    exchange_rate: float,
     checkin_date: Optional[date] = None,
 ) -> ComponentAuditResult:
     """
@@ -125,7 +146,7 @@ async def _scrape_and_match_component(
     """
     component_name = component.name
     dmc_price_lkr = float(component.base_price_lkr or 0)
-    dmc_price_eur = _lkr_to_eur(dmc_price_lkr)
+    dmc_price_usd = round(dmc_price_lkr / exchange_rate, 2)
 
     logger.info(f"[Audit] Processing component: '{component_name}' ({component.component_type})")
 
@@ -163,9 +184,9 @@ async def _scrape_and_match_component(
         return ComponentAuditResult(
             component_id=component.id,
             component_name=component_name,
-            dmc_price_eur=dmc_price_eur,
+            dmc_price_usd=dmc_price_usd,
             matched_hotel_name=None,
-            ota_price_eur=None,
+            ota_price_usd=None,
             platform=None,
             confidence=0.0,
             match_method="no_results",
@@ -185,9 +206,9 @@ async def _scrape_and_match_component(
         return ComponentAuditResult(
             component_id=component.id,
             component_name=component_name,
-            dmc_price_eur=dmc_price_eur,
+            dmc_price_usd=dmc_price_usd,
             matched_hotel_name=None,
-            ota_price_eur=None,
+            ota_price_usd=None,
             platform=None,
             confidence=confidence,
             match_method="llm_verified",
@@ -201,43 +222,43 @@ async def _scrape_and_match_component(
         None
     )
 
-    ota_price_eur = matched_ota.total_price if matched_ota else None
+    ota_price_usd = matched_ota.total_price if matched_ota else None
     platform = matched_ota.platform if matched_ota else None
     matched_url = getattr(matched_ota, "url", None) if matched_ota else None
 
     # --- Fallback: Scrape hotel detail page directly if price is missing ---
-    if ota_price_eur is None and platform == "Booking.com" and matched_url:
+    if ota_price_usd is None and platform == "Booking.com" and matched_url:
         logger.info(f"[Audit] Matched hotel '{matched_name}' has no price on search list. Scraping detail page directly: {matched_url}")
         try:
             detail_price = await booking_scraper.scrape_detail_page(matched_url)
             if detail_price is not None:
-                ota_price_eur = detail_price
+                ota_price_usd = detail_price
                 if matched_ota:
                     matched_ota.total_price = detail_price
                     matched_ota.price_per_night = round(detail_price / nights, 2)
-                logger.info(f"[Audit] Detail page scrape success: €{ota_price_eur}")
+                logger.info(f"[Audit] Detail page scrape success: ${ota_price_usd}")
         except Exception as e:
             logger.warning(f"[Audit] Failed to scrape detail page for '{matched_name}': {e}")
 
     # --- Step 4: Calculate price delta ---
     price_delta_pct = None
-    if ota_price_eur and dmc_price_eur > 0:
+    if ota_price_usd and dmc_price_usd > 0:
         price_delta_pct = round(
-            ((dmc_price_eur - ota_price_eur) / ota_price_eur) * 100, 2
+            ((dmc_price_usd - ota_price_usd) / ota_price_usd) * 100, 2
         )
 
     logger.info(
         f"[Audit] '{component_name}' → matched '{matched_name}' on {platform} "
-        f"(confidence: {confidence}%) | DMC: €{dmc_price_eur} vs OTA: €{ota_price_eur} "
+        f"(confidence: {confidence}%) | DMC: ${dmc_price_usd} vs OTA: ${ota_price_usd} "
         f"| Delta: {price_delta_pct}%"
     )
 
     return ComponentAuditResult(
         component_id=component.id,
         component_name=component_name,
-        dmc_price_eur=dmc_price_eur,
+        dmc_price_usd=dmc_price_usd,
         matched_hotel_name=matched_name,
-        ota_price_eur=ota_price_eur,
+        ota_price_usd=ota_price_usd,
         platform=platform,
         confidence=confidence,
         match_method="llm_verified",
@@ -266,6 +287,7 @@ async def run_audit(
     """
     logger.info(f"[Audit] ▶ Starting audit — package_id={package_id}, market={source_market}, job_id={job_id}")
 
+    exchange_rate = await get_lkr_to_usd_rate()
     job_uuid = uuid.UUID(job_id) if job_id else None
     
     try:
@@ -335,6 +357,7 @@ async def run_audit(
                         locale=locale,
                         nights=nights,
                         matcher=matcher,
+                        exchange_rate=exchange_rate,
                         checkin_date=checkin_date,
                     )
                     component_results.append(result)
@@ -347,14 +370,14 @@ async def run_audit(
                         job = job_result.scalar_one_or_none()
                         if job:
                             job.completed_tasks = idx + 1
-                            if idx + 1 == len(package.components) and (attempt == max_attempts or not any(r.ota_price_eur is None for r in component_results)):
+                            if idx + 1 == len(package.components) and (attempt == max_attempts or not any(r.ota_price_usd is None for r in component_results)):
                                 job.status = "matching"
                             await db.commit()
 
                 # Calculate successfully matched hotel components count
                 matched_count = sum(
                     1 for r in component_results 
-                    if r.ota_price_eur is not None 
+                    if r.ota_price_usd is not None 
                     and next((c.component_type for c in package.components if c.id == r.component_id), None) == "hotel"
                 )
                 if matched_count > best_matched_count:
@@ -367,7 +390,7 @@ async def run_audit(
                 for r in component_results:
                     # Find component type in package components
                     comp_type = next((c.component_type for c in package.components if c.id == r.component_id), None)
-                    if r.ota_price_eur is None and comp_type == "hotel":
+                    if r.ota_price_usd is None and comp_type == "hotel":
                         has_sold_out = True
                         break
 
@@ -412,9 +435,9 @@ async def run_audit(
                         source_market_id=src_mkt_id,
                         component_type=comp_type,
                         raw_name=result.matched_hotel_name,
-                        price=result.ota_price_eur,
-                        currency="EUR",
-                        price_usd=round(result.ota_price_eur * 1.08, 2) if result.ota_price_eur else None,
+                        price=result.ota_price_usd,
+                        currency="USD",
+                        price_usd=result.ota_price_usd if result.ota_price_usd else None,
                         url=result.matched_url,
                     )
                     db.add(ota_list_record)
@@ -430,17 +453,17 @@ async def run_audit(
                     db.add(match_record)
 
             # --- Aggregate results ---
-            matched_results = [r for r in component_results if r.ota_price_eur is not None]
+            matched_results = [r for r in component_results if r.ota_price_usd is not None]
 
-            dmc_total_eur = sum(r.dmc_price_eur for r in component_results)
-            market_total_eur = sum(r.ota_price_eur for r in matched_results if r.ota_price_eur)
+            dmc_total_usd = sum(r.dmc_price_usd for r in component_results)
+            market_total_usd = sum(r.ota_price_usd for r in matched_results if r.ota_price_usd)
 
-            if dmc_total_eur > 0 and market_total_eur > 0:
+            if dmc_total_usd > 0 and market_total_usd > 0:
                 overall_delta_pct = round(
-                    ((dmc_total_eur - market_total_eur) / market_total_eur) * 100, 2
+                    ((dmc_total_usd - market_total_usd) / market_total_usd) * 100, 2
                 )
                 status = _determine_status(overall_delta_pct)
-                market_assembled_price_usd = round(market_total_eur * 1.08, 2)
+                market_assembled_price_usd = market_total_usd
             else:
                 overall_delta_pct = None
                 status = "partial"
@@ -454,7 +477,7 @@ async def run_audit(
             report = CompetitivenessReport(
                 package_id=package_id,
                 source_market_id=src_mkt_id,
-                dmc_price_usd=round(dmc_total_eur * 1.08, 2),
+                dmc_price_usd=dmc_total_usd,
                 market_assembled_price_usd=market_assembled_price_usd,
                 price_delta_pct=overall_delta_pct,
                 status=status,
@@ -476,15 +499,15 @@ async def run_audit(
             await db.commit()
 
             logger.info(
-                f"[Audit] ✓ Complete — DMC: €{dmc_total_eur} | Market: €{market_total_eur} "
+                f"[Audit] ✓ Complete — DMC: ${dmc_total_usd} | Market: ${market_total_usd} "
                 f"| Delta: {overall_delta_pct}% | Status: {status}"
             )
 
             summary = AuditSummary(
                 package_id=package_id,
                 source_market=source_market,
-                dmc_total_eur=dmc_total_eur,
-                market_total_eur=market_total_eur,
+                dmc_total_usd=dmc_total_usd,
+                market_total_usd=market_total_usd,
                 overall_delta_pct=overall_delta_pct,
                 status=status,
                 component_results=component_results,
@@ -538,6 +561,6 @@ async def audit_package(ctx: dict, package_id: int, source_market: str = "DE"):
         "package_id": summary.package_id,
         "status": summary.status,
         "overall_delta_pct": summary.overall_delta_pct,
-        "components_matched": len([r for r in summary.component_results if r.ota_price_eur]),
+        "components_matched": len([r for r in summary.component_results if r.ota_price_usd]),
         "components_total": len(summary.component_results),
     }

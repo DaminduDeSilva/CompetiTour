@@ -83,15 +83,15 @@ class BookingComScraper:
             "checkout": self.checkout.isoformat(),
             "group_adults": "2",
             "no_rooms": "1",
-            "selected_currency": "EUR",
+            "selected_currency": "USD",
             "lang": self.locale.replace("-", "_").lower(),
         }
         query_string = "&".join(f"{k}={v.replace(' ', '+')}" for k, v in params.items())
         return f"{self.BASE_URL}?{query_string}"
 
     def _parse_price(self, price_text: str) -> Optional[float]:
-        """Extracts a numeric float from a price string like '€2,100' or 'EUR 2100'."""
-        cleaned = re.sub(r"[€$£¥₩,\s]", "", price_text)
+        """Extracts a numeric float from a price string like '$2,100' or 'USD 2100'."""
+        cleaned = re.sub(r"[$$£¥₩,\s]", "", price_text)
         # Remove currency codes
         cleaned = re.sub(r"[A-Z]{2,}", "", cleaned).strip()
         try:
@@ -225,7 +225,7 @@ class BookingComScraper:
                     price_per_night = round(total_price / self.nights, 2) if total_price else None
 
                     # --- Detect currency from page ---
-                    currency = "EUR"
+                    currency = "USD"
                     if raw_price_text:
                         if "£" in raw_price_text:
                             currency = "GBP"
@@ -296,7 +296,7 @@ class BookingComScraper:
         clean_url = (
             f"https://www.booking.com{clean_path}"
             f"?checkin={checkin_str}&checkout={checkout_str}"
-            f"&group_adults=2&no_rooms=1&selected_currency=EUR"
+            f"&group_adults=2&no_rooms=1&selected_currency=USD"
         )
 
         accept_language = self.LOCALE_HEADERS.get(self.locale, "de-DE,de;q=0.9,en;q=0.8")

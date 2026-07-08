@@ -272,7 +272,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-white">Market Comparison Trend</h3>
-              <p className="text-xs text-gray-300 mt-0.5">Global Market Baseline (EUR)</p>
+              <p className="text-xs text-gray-300 mt-0.5">Global Market Baseline (USD)</p>
             </div>
             <span className="text-[10px] font-bold tracking-wider px-2 py-1 rounded bg-zinc-900 text-gray-400 border border-zinc-800 uppercase">
               Last 30 Days

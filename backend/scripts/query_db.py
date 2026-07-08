@@ -26,7 +26,7 @@ async def main():
         listings = listing_res.scalars().all()
         print("\n=== OTA Listings Scraped ===")
         for l in listings:
-            print(f"ID: {l.id}, Session ID: {l.scrape_session_id}, Name: {l.raw_name}, Price: EUR {l.price}, Platform: {l.platform_id}, URL: {l.url}")
+            print(f"ID: {l.id}, Session ID: {l.scrape_session_id}, Name: {l.raw_name}, Price: USD {l.price}, Platform: {l.platform_id}, URL: {l.url}")
             
         # Check matches
         match_res = await session.execute(select(ComponentMatch))

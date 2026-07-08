@@ -13,17 +13,17 @@ const packageData: Record<string, {
   id: number; name: string; duration: string; priceLkr: number; priceUsd: number;
   status: string; description: string; markets: string[]; platforms: string[];
   proxyType: string;
-  itinerary: { type: string; name: string; details: string; costEur: number }[];
+  itinerary: { type: string; name: string; details: string; costUsd: number }[];
 }> = {
   "1": {
     id: 1, name: "Classic Sri Lanka Tour", duration: "10 Days", priceLkr: 1250000, priceUsd: 4100,
     status: "competitive", description: "A comprehensive tour covering Sigiriya, Kandy, Nuwara Eliya, and Galle Fort.",
     markets: ["DE", "GB", "AU"], platforms: ["Booking.com", "Agoda"], proxyType: "residential",
     itinerary: [
-      { type: "hotel", name: "Heritance Kandalama", details: "3 Nights - Superior Room", costEur: 780 },
-      { type: "hotel", name: "Ceylon Tea Trails", details: "2 Nights - Bungalow Suite", costEur: 920 },
-      { type: "excursion", name: "Sigiriya Rock Fortress", details: "Full Day Private Tour", costEur: 180 },
-      { type: "transfer", name: "Airport & Inter-city Transfers", details: "Private Premium Van", costEur: 220 },
+      { type: "hotel", name: "Heritance Kandalama", details: "3 Nights - Superior Room", costUsd: 780 },
+      { type: "hotel", name: "Ceylon Tea Trails", details: "2 Nights - Bungalow Suite", costUsd: 920 },
+      { type: "excursion", name: "Sigiriya Rock Fortress", details: "Full Day Private Tour", costUsd: 180 },
+      { type: "transfer", name: "Airport & Inter-city Transfers", details: "Private Premium Van", costUsd: 220 },
     ],
   },
   "2": {
@@ -31,10 +31,10 @@ const packageData: Record<string, {
     status: "at_risk", description: "Polonnaruwa, Dambulla cave temples, and Mirissa beach.",
     markets: ["DE", "GB"], platforms: ["Booking.com", "Expedia"], proxyType: "isp",
     itinerary: [
-      { type: "hotel", name: "Amaya Lake", details: "3 Nights - Deluxe Room", costEur: 640 },
-      { type: "hotel", name: "Mirissa Hills", details: "2 Nights - Pool Villa", costEur: 780 },
-      { type: "excursion", name: "Whale Watching Mirissa", details: "Half Day Tour", costEur: 120 },
-      { type: "transfer", name: "Colombo – Dambulla – Mirissa", details: "Private Van", costEur: 160 },
+      { type: "hotel", name: "Amaya Lake", details: "3 Nights - Deluxe Room", costUsd: 640 },
+      { type: "hotel", name: "Mirissa Hills", details: "2 Nights - Pool Villa", costUsd: 780 },
+      { type: "excursion", name: "Whale Watching Mirissa", details: "Half Day Tour", costUsd: 120 },
+      { type: "transfer", name: "Colombo – Dambulla – Mirissa", details: "Private Van", costUsd: 160 },
     ],
   },
   "3": {
@@ -42,10 +42,10 @@ const packageData: Record<string, {
     status: "underpriced", description: "Yala, Udawalawe, and Knuckles mountain range adventure.",
     markets: ["DE", "GB", "AU"], platforms: ["Booking.com", "Agoda", "Viator"], proxyType: "residential",
     itinerary: [
-      { type: "hotel", name: "Cinnamon Wild Yala", details: "3 Nights - Deluxe Room", costEur: 1850 },
-      { type: "hotel", name: "Cape Weligama", details: "4 Nights - Ocean Villa", costEur: 3100 },
-      { type: "excursion", name: "Yala National Park Safari", details: "Half-Day Private Jeep Tour", costEur: 410 },
-      { type: "transfer", name: "Southern Transfers Package", details: "Private Premium Van", costEur: 300 },
+      { type: "hotel", name: "Cinnamon Wild Yala", details: "3 Nights - Deluxe Room", costUsd: 1850 },
+      { type: "hotel", name: "Cape Weligama", details: "4 Nights - Ocean Villa", costUsd: 3100 },
+      { type: "excursion", name: "Yala National Park Safari", details: "Half-Day Private Jeep Tour", costUsd: 410 },
+      { type: "transfer", name: "Southern Transfers Package", details: "Private Premium Van", costUsd: 300 },
     ],
   },
   "4": {
@@ -53,9 +53,9 @@ const packageData: Record<string, {
     status: "competitive", description: "Ultra-premium boutique experience at Amanwella and Cape Weligama.",
     markets: ["DE", "FR"], platforms: ["Booking.com", "Agoda"], proxyType: "residential",
     itinerary: [
-      { type: "hotel", name: "Amanwella", details: "3 Nights - Pool Terrace Suite", costEur: 2800 },
-      { type: "excursion", name: "Private Whale Watching Charter", details: "Full Day", costEur: 480 },
-      { type: "transfer", name: "Luxury Chauffeur Service", details: "Mercedes V-Class", costEur: 380 },
+      { type: "hotel", name: "Amanwella", details: "3 Nights - Pool Terrace Suite", costUsd: 2800 },
+      { type: "excursion", name: "Private Whale Watching Charter", details: "Full Day", costUsd: 480 },
+      { type: "transfer", name: "Luxury Chauffeur Service", details: "Mercedes V-Class", costUsd: 380 },
     ],
   },
   "5": {
@@ -63,10 +63,10 @@ const packageData: Record<string, {
     status: "pending", description: "Nuwara Eliya, Ella, and tea plantation experiences.",
     markets: ["GB", "AU"], platforms: ["Booking.com"], proxyType: "isp",
     itinerary: [
-      { type: "hotel", name: "Ceylon Tea Trails", details: "2 Nights - Bungalow", costEur: 920 },
-      { type: "hotel", name: "98 Acres Resort Ella", details: "2 Nights - Garden Suite", costEur: 480 },
-      { type: "excursion", name: "Scenic Train Ella to Kandy", details: "First Class", costEur: 90 },
-      { type: "transfer", name: "Hill Country Circuit Transfers", costEur: 200, details: "Private Van" },
+      { type: "hotel", name: "Ceylon Tea Trails", details: "2 Nights - Bungalow", costUsd: 920 },
+      { type: "hotel", name: "98 Acres Resort Ella", details: "2 Nights - Garden Suite", costUsd: 480 },
+      { type: "excursion", name: "Scenic Train Ella to Kandy", details: "First Class", costUsd: 90 },
+      { type: "transfer", name: "Hill Country Circuit Transfers", costUsd: 200, details: "Private Van" },
     ],
   },
 };
@@ -103,7 +103,7 @@ export default function PackageDetailPage() {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const totalEur = pkg.itinerary.reduce((a, c) => a + c.costEur, 0);
+  const totalUsd = pkg.itinerary.reduce((a, c) => a + c.costUsd, 0);
 
   return (
     <PageWrapper>
@@ -175,13 +175,13 @@ export default function PackageDetailPage() {
                     <p className="text-[11px] text-gray-300">{item.details}</p>
                   </div>
                 </div>
-                <span className="text-sm font-bold text-white">€{item.costEur.toLocaleString()}</span>
+                <span className="text-sm font-bold text-white">${item.costUsd.toLocaleString()}</span>
               </div>
             ))}
           </div>
           <div className="flex justify-between items-center pt-3 border-t border-zinc-900">
             <span className="text-xs text-gray-300 font-semibold uppercase tracking-wider">Total DMC Cost</span>
-            <span className="text-lg font-black text-white">€{totalEur.toLocaleString()}</span>
+            <span className="text-lg font-black text-white">${totalUsd.toLocaleString()}</span>
           </div>
         </div>
 

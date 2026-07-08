@@ -34,8 +34,8 @@ async def lifespan(app: FastAPI):
             # Seed source markets
             res_m = await session.execute(select(SourceMarket))
             if not res_m.scalars().first():
-                session.add(SourceMarket(country_code="DE", country_name="Germany", currency="EUR", locale="de-DE", timezone="Europe/Berlin"))
-                session.add(SourceMarket(country_code="GB", country_name="United Kingdom", currency="GBP", locale="en-GB", timezone="Europe/London"))
+                session.add(SourceMarket(country_code="DE", country_name="Germany", currency="USD", locale="de-DE", timezone="Usdope/Berlin"))
+                session.add(SourceMarket(country_code="GB", country_name="United Kingdom", currency="GBP", locale="en-GB", timezone="Usdope/London"))
                 session.add(SourceMarket(country_code="AU", country_name="Australia", currency="AUD", locale="en-AU", timezone="Australia/Sydney"))
                 logger.info("Seeding source markets...")
             

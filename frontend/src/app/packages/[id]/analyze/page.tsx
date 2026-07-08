@@ -64,9 +64,9 @@ export default function AnalyzePage() {
         "[09:30:06] Applying stealth fingerprint bypass models to Booking.com and Agoda...",
         "[09:30:08] GET https://www.booking.com/searchresults.html?ss=Yala+National+Park - Status: 200",
         "[09:30:10] Extracting listing items. Switching to ISP proxy for sticky detail parsing...",
-        "[09:30:11] Target hotel: Cinnamon Wild Yala - found match on Booking.com (€2,100/3 Nights)",
+        "[09:30:11] Target hotel: Cinnamon Wild Yala - found match on Booking.com ($2,100/3 Nights)",
         "[09:30:12] GET https://www.agoda.com/search?q=Cinnamon+Wild+Yala - Status: 200",
-        "[09:30:13] Extracted Agoda room rate: Deluxe (€2,100/3 Nights)"
+        "[09:30:13] Extracted Agoda room rate: Deluxe ($2,100/3 Nights)"
       ]
     },
     {
@@ -100,9 +100,9 @@ export default function AnalyzePage() {
       sublabel: "Analyzing pricing margins, leakages, and compiling PDF report",
       status: "pending",
       logs: [
-        "[09:30:23] Normalizing currency rates: EUR to LKR (Rate: 326.50)",
+        "[09:30:23] Normalizing currency rates: USD to LKR (Rate: 305.00)",
         "[09:30:24] Calculating cost components difference...",
-        "[09:30:25] Package sum-of-parts in Germany: €7,120. Your price: €5,660.",
+        "[09:30:25] Package sum-of-parts in Germany: $7,120. Your price: $5,660.",
         "[09:30:26] Pricing Gap (Margin Leakage): -20.5%",
         "[09:30:27] Saving snapshot to database competitiveness_reports."
       ]

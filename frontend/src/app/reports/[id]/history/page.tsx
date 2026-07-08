@@ -42,19 +42,19 @@ export default function ReportHistoryPage() {
 
   const [markupApplied, setMarkupApplied] = useState(false);
 
-  const EXCHANGE_RATE = 326.50;
+  const EXCHANGE_RATE = 305.00;
   const baseLkr = packageData?.total_price_lkr || 1850000;
-  const baseEur = baseLkr / EXCHANGE_RATE;
+  const baseUsd = baseLkr / EXCHANGE_RATE;
 
   const matchedComponents = (packageData?.components || []).map((comp: any) => {
     // Find the latest match
     const match = comp.matches && comp.matches.length > 0 ? comp.matches[0] : null;
-    const yourCostEur = comp.base_price_lkr / EXCHANGE_RATE;
+    const yourCostUsd = comp.base_price_lkr / EXCHANGE_RATE;
     
     if (match && match.listing) {
-      const scrapedCostEur = match.listing.price;
-      const isUnavailable = scrapedCostEur === null || scrapedCostEur === undefined || scrapedCostEur === 0;
-      const delta = !isUnavailable && scrapedCostEur > 0 ? Math.round(((yourCostEur - scrapedCostEur) / scrapedCostEur) * 1000) / 10 : null;
+      const scrapedCostUsd = match.listing.price;
+      const isUnavailable = scrapedCostUsd === null || scrapedCostUsd === undefined || scrapedCostUsd === 0;
+      const delta = !isUnavailable && scrapedCostUsd > 0 ? Math.round(((yourCostUsd - scrapedCostUsd) / scrapedCostUsd) * 1000) / 10 : null;
       
       const platformMap: Record<number, string> = { 1: "Booking.com", 2: "Agoda" };
       const scrapedPlatform = platformMap[match.listing.platform_id] || "Booking.com";
@@ -64,10 +64,10 @@ export default function ReportHistoryPage() {
         type: comp.component_type || "hotel",
         name: comp.name,
         details: comp.nights_or_duration ? `${comp.nights_or_duration}` : "1 Night",
-        yourCostEur: Math.round(yourCostEur),
+        yourCostUsd: Math.round(yourCostUsd),
         scrapedName: match.listing.raw_name,
         scrapedPlatform: scrapedPlatform,
-        scrapedCostEur: isUnavailable ? null : Math.round(scrapedCostEur),
+        scrapedCostUsd: isUnavailable ? null : Math.round(scrapedCostUsd),
         delta: delta,
         confidence: match.confidence,
         method: match.match_method === 'llm_verified' ? 'LLM Verified' : match.match_method === 'embedding' ? 'Cosine Similarity' : 'Rule Matched',
@@ -79,10 +79,10 @@ export default function ReportHistoryPage() {
         type: comp.component_type || "hotel",
         name: comp.name,
         details: comp.nights_or_duration ? `${comp.nights_or_duration}` : "1 Night",
-        yourCostEur: Math.round(yourCostEur),
+        yourCostUsd: Math.round(yourCostUsd),
         scrapedName: "No Match Found",
         scrapedPlatform: "N/A",
-        scrapedCostEur: null,
+        scrapedCostUsd: null,
         delta: null,
         confidence: 0,
         method: "None",
@@ -99,9 +99,9 @@ export default function ReportHistoryPage() {
         3: { name: "Australia (AU)", flag: "🇦🇺" }
       };
       const marketInfo = marketNames[rep.source_market_id] || { name: "Germany (DE)", flag: "🇩🇪" };
-      const dmcRate = `€${Math.round(rep.dmc_price_usd / 1.08).toLocaleString()}`;
+      const dmcRate = `$${Math.round(rep.dmc_price_usd / 1.08).toLocaleString()}`;
       const marketPrice = rep.market_assembled_price_usd !== null && rep.market_assembled_price_usd !== undefined
-        ? `€${Math.round(rep.market_assembled_price_usd / 1.08).toLocaleString()}`
+        ? `$${Math.round(rep.market_assembled_price_usd / 1.08).toLocaleString()}`
         : "N/A";
       const variance = rep.price_delta_pct !== null && rep.price_delta_pct !== undefined
         ? `${rep.price_delta_pct > 0 ? "+" : ""}${rep.price_delta_pct}%`
@@ -122,11 +122,11 @@ export default function ReportHistoryPage() {
   const latestReport = reportsList[0];
   const lastAuditedStr = latestReport ? latestReport.date : "Never";
 
-  const totalDmcEur = matchedComponents.reduce((acc: number, c: any) => acc + c.yourCostEur, 0);
+  const totalDmcUsd = matchedComponents.reduce((acc: number, c: any) => acc + c.yourCostUsd, 0);
   const availableScrapedComponents = matchedComponents.filter((c: any) => !c.isUnavailable);
-  const totalScrapedEur = availableScrapedComponents.reduce((acc: number, c: any) => acc + (c.scrapedCostEur || 0), 0);
-  const totalDmcEurForAvailable = availableScrapedComponents.reduce((acc: number, c: any) => acc + c.yourCostEur, 0);
-  const totalDeltaPct = totalScrapedEur > 0 ? Math.round(((totalDmcEurForAvailable - totalScrapedEur) / totalScrapedEur) * 1000) / 10 : 0;
+  const totalScrapedUsd = availableScrapedComponents.reduce((acc: number, c: any) => acc + (c.scrapedCostUsd || 0), 0);
+  const totalDmcUsdForAvailable = availableScrapedComponents.reduce((acc: number, c: any) => acc + c.yourCostUsd, 0);
+  const totalDeltaPct = totalScrapedUsd > 0 ? Math.round(((totalDmcUsdForAvailable - totalScrapedUsd) / totalScrapedUsd) * 1000) / 10 : 0;
   const hasUnavailableComponents = matchedComponents.some((c: any) => c.isUnavailable);
 
   if (isLoading) {
@@ -172,7 +172,7 @@ export default function ReportHistoryPage() {
             Audit Result
           </span>
           <h2 className="text-xl font-bold text-white mt-1">{packageData?.name}</h2>
-          <p className="text-xs text-gray-300 mt-0.5">DMC Base Price: LKR {baseLkr.toLocaleString()} (approx. €{Math.round(baseEur).toLocaleString()})</p>
+          <p className="text-xs text-gray-300 mt-0.5">DMC Base Price: LKR {baseLkr.toLocaleString()} (approx. ${Math.round(baseUsd).toLocaleString()})</p>
         </div>
       </div>
 
@@ -206,18 +206,18 @@ export default function ReportHistoryPage() {
               <div className="flex gap-8">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-gray-300 uppercase font-semibold">Your Price</span>
-                  <span className="text-sm font-black text-white">€{totalDmcEur.toLocaleString()}</span>
+                  <span className="text-sm font-black text-white">${totalDmcUsd.toLocaleString()}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-gray-300 uppercase font-semibold">Market Sum-of-Parts</span>
                   <span className="text-sm font-black text-white">
-                    €{totalScrapedEur.toLocaleString()}{hasUnavailableComponents ? "*" : ""}
+                    ${totalScrapedUsd.toLocaleString()}{hasUnavailableComponents ? "*" : ""}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-gray-300 uppercase font-semibold">Pricing Gap Opportunity</span>
                   <span className="text-sm font-black text-emerald-400">
-                    {hasUnavailableComponents ? "N/A (Partial Audit)" : `+€${Math.round((totalScrapedEur * 0.9 - totalDmcEur))} (at 10% discount)`}
+                    {hasUnavailableComponents ? "N/A (Partial Audit)" : `+$${Math.round((totalScrapedUsd * 0.9 - totalDmcUsd))} (at 10% discount)`}
                   </span>
                 </div>
               </div>
@@ -269,7 +269,7 @@ export default function ReportHistoryPage() {
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-white">{comp.name}</span>
                       <span className="text-[10px] text-gray-300 mt-0.5">{comp.details}</span>
-                      <span className="text-xs text-sky-400 font-semibold mt-1">€{comp.yourCostEur.toLocaleString()}</span>
+                      <span className="text-xs text-sky-400 font-semibold mt-1">${comp.yourCostUsd.toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -297,7 +297,7 @@ export default function ReportHistoryPage() {
                           Sold Out / N/A
                         </span>
                       ) : (
-                        `€${comp.scrapedCostEur.toLocaleString()}`
+                        `$${comp.scrapedCostUsd.toLocaleString()}`
                       )}
                     </span>
                   </div>
@@ -325,11 +325,11 @@ export default function ReportHistoryPage() {
             <div className="flex flex-col gap-3 text-xs text-gray-400">
               <div className="flex justify-between">
                 <span>DMC Price (USD equivalent)</span>
-                <span className="text-white font-bold">${(totalDmcEur * 1.08).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                <span className="text-white font-bold">${(totalDmcUsd * 1.08).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
               </div>
               <div className="flex justify-between">
                 <span>Market Price (USD equivalent)</span>
-                <span className="text-white font-bold">${(totalScrapedEur * 1.08).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                <span className="text-white font-bold">${(totalScrapedUsd * 1.08).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
               </div>
               <div className="flex justify-between">
                 <span>Source Market</span>

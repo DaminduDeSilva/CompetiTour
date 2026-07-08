@@ -28,13 +28,13 @@ async def main():
             summary = await run_audit(package_id=target_package_id, source_market="DE")
             print("\nAudit complete! Summary results:")
             print(f"  Package ID: {summary.package_id}")
-            print(f"  DMC Total: €{summary.dmc_total_eur}")
-            print(f"  Market Total: €{summary.market_total_eur}")
+            print(f"  DMC Total: ${summary.dmc_total_usd}")
+            print(f"  Market Total: ${summary.market_total_usd}")
             print(f"  Overall Delta: {summary.overall_delta_pct}%")
             print(f"  Status: {summary.status}")
             print("  Component Results:")
             for r in summary.component_results:
-                print(f"    - {r.component_name} | Matched: {r.matched_hotel_name} | Price: €{r.ota_price_eur} | URL: {r.matched_url}")
+                print(f"    - {r.component_name} | Matched: {r.matched_hotel_name} | Price: ${r.ota_price_usd} | URL: {r.matched_url}")
 
 if __name__ == "__main__":
     asyncio.run(main())

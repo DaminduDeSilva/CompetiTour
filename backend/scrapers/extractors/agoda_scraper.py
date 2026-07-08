@@ -94,12 +94,12 @@ class AgodaScraper:
             f"&checkIn={checkin_str}"
             f"&checkOut={checkout_str}"
             f"&rooms=1&adults=2"
-            f"&cid=-218&currency=EUR"
+            f"&cid=-218&currency=USD"
         )
 
     def _parse_price(self, price_text: str) -> Optional[float]:
         """Extracts a numeric float from Agoda price text."""
-        cleaned = re.sub(r"[€$£¥₩,\s]", "", price_text)
+        cleaned = re.sub(r"[$$£¥₩,\s]", "", price_text)
         cleaned = re.sub(r"[A-Z]{2,}", "", cleaned).strip()
         try:
             return float(cleaned)
@@ -209,7 +209,7 @@ class AgodaScraper:
                     price_per_night = round(total_price / self.nights, 2) if total_price else None
 
                     # --- Currency detection ---
-                    currency = "EUR"
+                    currency = "USD"
                     if raw_price_text:
                         if "£" in raw_price_text:
                             currency = "GBP"
