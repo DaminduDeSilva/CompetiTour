@@ -4,7 +4,7 @@ import Link from "next/link";
 import PageWrapper from "@/components/layout/PageWrapper";
 import {
   FolderHeart, Search, Filter, Plus, Eye, Play,
-  ArrowRight, Clock, CheckCircle, AlertTriangle, TrendingDown, Trash2
+  ArrowRight, Clock, CheckCircle, AlertTriangle, TrendingDown, Trash2, Edit3
 } from "lucide-react";
 import { fetchDashboardPackages, runPackageAudit, deletePackage } from "@/app/dashboard/actions";
 import AuditProgressModal from "@/components/ui/AuditProgressModal";
@@ -202,6 +202,13 @@ export default function PackagesPage() {
                       <span>View Report</span>
                     </Link>
                   )}
+                  <Link
+                    href={`/packages/${pkg.id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-950/60 hover:bg-zinc-900 text-xs font-bold text-gray-300 hover:text-white transition-all cursor-pointer"
+                  >
+                    <Edit3 size={13} />
+                    <span>Edit</span>
+                  </Link>
                   <button
                     onClick={() => handleDelete(pkg.id, pkg.name)}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-950 hover:border-red-800 bg-red-950/20 hover:bg-red-500/20 text-xs font-bold text-red-400 hover:text-red-300 transition-all cursor-pointer"

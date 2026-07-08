@@ -46,8 +46,11 @@ export default function Sidebar() {
         <nav className="flex flex-col gap-1.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href ||
-              (item.href !== "/dashboard" && item.href !== "/packages/new" && pathname.startsWith(item.href) && item.href.length > 1);
+            const isActive = item.href === "/packages"
+              ? pathname === "/packages" || (pathname.startsWith("/packages/") && !pathname.startsWith("/packages/new"))
+              : item.href === "/dashboard"
+                ? pathname === "/dashboard"
+                : pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.name}

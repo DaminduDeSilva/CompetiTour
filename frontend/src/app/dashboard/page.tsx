@@ -11,7 +11,8 @@ import {
   Sparkles,
   ArrowRight,
   TrendingUp,
-  Trash2
+  Trash2,
+  Edit3
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
@@ -489,6 +490,13 @@ export default function DashboardPage() {
                         >
                           <Eye size={12} />
                           <span>History</span>
+                        </Link>
+                        <Link
+                          href={`/packages/${pkg.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Edit3 size={12} />
+                          <span>Edit</span>
                         </Link>
                         <button
                           onClick={() => handleDelete(pkg.id, pkg.name)}
