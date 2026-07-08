@@ -87,11 +87,11 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <BarChart3 size={20} className="text-sky-400" />
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400 flex items-center gap-3">
+            <BarChart3 size={28} className="text-sky-400" />
             Audit Reports
           </h2>
-          <p className="text-xs text-gray-300 mt-1">{reports.length} completed audit runs across all packages</p>
+          <p className="text-sm text-sky-200/60 mt-1 font-medium tracking-wide">{reports.length} completed audit runs across all packages</p>
         </div>
         <button
           onClick={() => alert("Exporting all reports as CSV...")}

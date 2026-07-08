@@ -6,7 +6,7 @@ import PageWrapper from "@/components/layout/PageWrapper";
 import { 
   Plus, Trash2, MapPin, Calendar, DollarSign, 
   ChevronRight, Hotel, Navigation, Compass,
-  CheckCircle2, AlertCircle, Sparkles
+  CheckCircle2, AlertCircle, Sparkles, PackagePlus
 } from "lucide-react";
 import { createDashboardPackage } from "@/app/dashboard/actions";
 
@@ -89,18 +89,11 @@ export default function NewPackagePage() {
 
   return (
     <PageWrapper>
-      {/* Ambient Background Glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-sky-900/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-900/20 blur-[120px]" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col gap-8">
-        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400">
+            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400 flex items-center gap-3">
+              <PackagePlus size={28} className="text-sky-400" />
               Create New Package
             </h2>
             <p className="text-sm text-sky-200/60 mt-1 font-medium tracking-wide">
@@ -428,7 +421,6 @@ export default function NewPackagePage() {
             </div>
           </div>
         </form>
-      </div>
     </PageWrapper>
   );
 }

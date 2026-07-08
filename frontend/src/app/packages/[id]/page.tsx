@@ -108,7 +108,7 @@ export default function PackageDetailPage() {
   return (
     <PageWrapper>
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-900 pb-6">
+      <div className="flex items-center justify-between border-b border-white/10 pb-6">
         <Link href="/packages" className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors">
           <ArrowLeft size={16} />
           <span>Back to Packages</span>
@@ -142,7 +142,7 @@ export default function PackageDetailPage() {
         <div className="flex-1">
           {editing ? (
             <input value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full text-xl font-bold text-white bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-1.5 focus:border-sky-500 focus:outline-none" />
+              className="w-full text-xl font-bold text-white bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all" />
           ) : (
             <h2 className="text-xl font-bold text-white">{name}</h2>
           )}
@@ -152,7 +152,7 @@ export default function PackageDetailPage() {
           </div>
           {editing ? (
             <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
-              className="w-full mt-2 text-sm text-gray-400 bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 focus:border-sky-500 focus:outline-none resize-none" />
+              className="w-full mt-2 text-sm text-gray-300 bg-white/5 border border-white/10 rounded-xl px-3 py-2 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all resize-none" />
           ) : (
             <p className="text-sm text-gray-300 mt-1">{desc}</p>
           )}
@@ -161,11 +161,11 @@ export default function PackageDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Itinerary */}
-        <div className="lg:col-span-2 p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
+        <div className="lg:col-span-2 p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f172a]/90 to-[#0a0a0e]/90 backdrop-blur-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] flex flex-col gap-4">
           <h3 className="text-sm font-bold text-white">Package Components</h3>
           <div className="flex flex-col gap-3">
             {pkg.itinerary.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-zinc-800 bg-zinc-950/60">
+              <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-[#0a0a0e]/40 border border-white/5 hover:bg-[#0a0a0e]/60 hover:border-white/10 transition-all">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
                     {typeIcon[item.type]}
@@ -187,7 +187,7 @@ export default function PackageDetailPage() {
 
         {/* Audit Config */}
         <div className="flex flex-col gap-4">
-          <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
+          <div className="p-6 rounded-2xl border border-white/5 bg-[#0a0a0e]/40 backdrop-blur-md flex flex-col gap-4 hover:border-white/10 transition-all">
             <h3 className="text-sm font-bold text-white">Audit Configuration</h3>
             <div className="flex flex-col gap-3 text-xs">
               <div>

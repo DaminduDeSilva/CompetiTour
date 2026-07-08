@@ -187,11 +187,11 @@ export default function DashboardPage() {
       {/* Top Banner Message */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-6 rounded-2xl border border-sky-500/20 bg-sky-500/5 backdrop-blur-md">
         <div>
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Sparkles size={18} className="text-sky-400" />
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400 flex items-center gap-3">
+            <Sparkles size={28} className="text-sky-400" />
             AI Pricing Audit Insights
           </h2>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-sky-200/60 mt-2 font-medium tracking-wide">
             We detected <strong className="text-sky-400">{atRiskCount} packages</strong> at risk of losing bookings, and <strong className="text-emerald-400">{leakageCount} packages</strong> experiencing severe margin leakage.
           </p>
         </div>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Metric 1 */}
-        <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
+        <div className="p-6 rounded-2xl border border-white/5 bg-[#0a0a0e]/40 backdrop-blur-md hover:bg-[#0a0a0e]/60 hover:border-white/10 transition-all flex flex-col gap-4">
           <div className="flex items-center justify-between text-gray-400">
             <span className="text-xs font-bold uppercase tracking-wider">Competitive Ratio</span>
             <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
@@ -222,7 +222,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Metric 2 */}
-        <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
+        <div className="p-6 rounded-2xl border border-white/5 bg-[#0a0a0e]/40 backdrop-blur-md hover:bg-[#0a0a0e]/60 hover:border-white/10 transition-all flex flex-col gap-4">
           <div className="flex items-center justify-between text-gray-400">
             <span className="text-xs font-bold uppercase tracking-wider">At Risk Packages</span>
             <div className="w-8 h-8 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
@@ -236,7 +236,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Metric 3 */}
-        <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
+        <div className="p-6 rounded-2xl border border-white/5 bg-[#0a0a0e]/40 backdrop-blur-md hover:bg-[#0a0a0e]/60 hover:border-white/10 transition-all flex flex-col gap-4">
           <div className="flex items-center justify-between text-gray-400">
             <span className="text-xs font-bold uppercase tracking-wider">Margin Leakages</span>
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
@@ -250,7 +250,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Metric 4 */}
-        <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
+        <div className="p-6 rounded-2xl border border-white/5 bg-[#0a0a0e]/40 backdrop-blur-md hover:bg-[#0a0a0e]/60 hover:border-white/10 transition-all flex flex-col gap-4">
           <div className="flex items-center justify-between text-gray-400">
             <span className="text-xs font-bold uppercase tracking-wider">Proxy Scrapes (24h)</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
@@ -268,7 +268,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Chart Column */}
-        <div className="lg:col-span-2 p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
+        <div className="lg:col-span-2 p-6 rounded-2xl border border-white/5 bg-[#0a0a0e]/40 backdrop-blur-md flex flex-col gap-6 relative overflow-hidden group hover:border-white/10 transition-all">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-white">Market Comparison Trend</h3>
@@ -343,7 +343,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Market Source list */}
-        <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col justify-between">
+        <div className="p-6 rounded-2xl border border-white/5 bg-[#0a0a0e]/40 backdrop-blur-md flex flex-col justify-between group hover:border-white/10 transition-all">
           <div>
             <h3 className="text-sm font-bold text-white">Monitoring Locations</h3>
             <p className="text-xs text-gray-300 mt-0.5">Proxy exit nodes configured</p>
@@ -394,7 +394,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Packages Table Container */}
-      <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
+      <div className="p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f172a]/90 to-[#0a0a0e]/90 backdrop-blur-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] flex flex-col gap-6 overflow-hidden">
         <div>
           <h3 className="text-sm font-bold text-white">Monitored Packages</h3>
           <p className="text-xs text-gray-300 mt-0.5">Package competitiveness across key source markets</p>

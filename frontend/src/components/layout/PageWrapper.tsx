@@ -22,8 +22,14 @@ export default function PageWrapper({ children }: PageWrapperProps) {
         <TopBar />
 
         {/* Dynamic Page Scroll Area */}
-        <main className="flex-1 overflow-y-scroll p-8 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,#0f172a_0%,#000000_100%)]">
-          <div className="w-full max-w-7xl mx-auto flex flex-col gap-8">
+        <main className="flex-1 overflow-y-scroll p-8 relative bg-black">
+          {/* Ambient Background Glows */}
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-sky-900/20 blur-[120px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-900/20 blur-[120px]" />
+          </div>
+
+          <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col gap-8">
             {children}
           </div>
         </main>

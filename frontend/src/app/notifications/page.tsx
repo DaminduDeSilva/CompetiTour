@@ -87,14 +87,14 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Bell size={20} className="text-sky-400" />
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400 flex items-center gap-3">
+            <Bell size={28} className="text-sky-400" />
             Notifications
             {unread > 0 && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-sky-500 text-black">{unread}</span>
+              <span className="text-sm font-bold px-3 py-1 rounded-full bg-sky-500 text-black">{unread}</span>
             )}
           </h2>
-          <p className="text-xs text-gray-300 mt-1">Audit alerts and system events for {companyName}</p>
+          <p className="text-sm text-sky-200/60 mt-1 font-medium tracking-wide">Audit alerts and system events for {companyName}</p>
         </div>
         {unread > 0 && (
           <button onClick={markAllRead}

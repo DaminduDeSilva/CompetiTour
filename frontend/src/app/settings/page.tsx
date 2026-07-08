@@ -58,13 +58,13 @@ export default function SettingsPage() {
   return (
     <PageWrapper>
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-900 pb-6">
+      <div className="flex items-center justify-between border-b border-white/10 pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <SettingsIcon size={20} className="text-sky-400" />
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400 flex items-center gap-3">
+            <SettingsIcon size={28} className="text-sky-400" />
             Settings
           </h2>
-          <p className="text-xs text-gray-300 mt-1">Manage your workspace, AI matcher, and proxy connection status</p>
+          <p className="text-sm text-sky-200/60 mt-1 font-medium tracking-wide">Manage your workspace, AI matcher, and proxy connection status</p>
         </div>
         {saveSuccess && (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">

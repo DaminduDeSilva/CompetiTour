@@ -115,13 +115,13 @@ export default function BillingPage() {
   return (
     <PageWrapper>
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-zinc-900 pb-6">
+      <div className="flex items-start justify-between border-b border-white/10 pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <CreditCard size={20} className="text-sky-400" />
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400 flex items-center gap-3">
+            <CreditCard size={28} className="text-sky-400" />
             Billing & Plans
           </h2>
-          <p className="text-xs text-gray-300 mt-1">
+          <p className="text-sm text-sky-200/60 mt-1 font-medium tracking-wide">
             Subscription tiers aligned to your proxy data consumption. Upgrade to unlock more source markets and audit runs.
           </p>
         </div>
