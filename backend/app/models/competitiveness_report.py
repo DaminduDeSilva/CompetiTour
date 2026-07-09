@@ -10,7 +10,7 @@ class CompetitivenessReport(Base):
     __tablename__ = "competitiveness_reports"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    package_id = Column(Integer, ForeignKey("dmc_packages.id"))
+    package_id = Column(Integer, ForeignKey("dmc_packages.id", ondelete="CASCADE"))
     source_market_id = Column(Integer, ForeignKey("source_markets.id"))
     dmc_price_usd = Column(Numeric(12, 2))
     market_assembled_price_usd = Column(Numeric(12, 2))

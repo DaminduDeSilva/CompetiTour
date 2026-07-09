@@ -98,7 +98,41 @@ export async function fetchDashboardPackage(id: string) {
   }
 }
 
-export async function runPackageAudit(packageId: number) {
+export async function updateDashboardPackage(id: string, payload: any) {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    return { error: 'Not authorized' }
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/v1/packages/${id}`, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!res.ok) {
+      throw new Error('Failed to update package')
+    }
+
+    const data = await res.json()
+    revalidatePath('/dashboard')
+    revalidatePath('/packages')
+    revalidatePath(`/packages/${id}`)
+    return { success: true, data }
+  } catch (error: any) {
+    console.error(`Update package ${id} error:`, error)
+    return { error: error.message }
+  }
+}
+
+export async function runPackageAudit(packageId: number, sourceMarkets: string[] = ["DE"]) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
   const { data: { session } } = await supabase.auth.getSession()
@@ -111,8 +145,10 @@ export async function runPackageAudit(packageId: number) {
     const res = await fetch(`${API_URL}/api/v1/jobs/run-audit/${packageId}`, {
       method: "POST",
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`
-      }
+      },
+      body: JSON.stringify({ source_markets: sourceMarkets })
     })
 
     if (!res.ok) {

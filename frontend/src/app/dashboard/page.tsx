@@ -454,36 +454,13 @@ export default function DashboardPage() {
                     </td>
                     <td className="py-4 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        {auditingId === pkg.id ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-sky-400 border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 rounded-lg select-none animate-pulse">
-                            <Radio size={12} className="animate-spin" />
-                            <span>Auditing...</span>
-                          </span>
-                        ) : (
-                          <button
-                            onClick={async () => {
-                              setAuditingId(pkg.id);
-                              try {
-                                const res = await runPackageAudit(pkg.id);
-                                if (res.success && res.data?.id) {
-                                  setActiveJobId(res.data.id);
-                                  setActivePackageName(pkg.name);
-                                  setIsProgressModalOpen(true);
-                                } else {
-                                  alert("Error triggering audit: " + (res.error || "No job ID returned"));
-                                }
-                              } catch (err: any) {
-                                alert("Failed to run audit: " + err.message);
-                              } finally {
-                                setAuditingId(null);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-gray-300 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Radio size={12} />
-                            <span>Run Audit</span>
-                          </button>
-                        )}
+                        <Link
+                          href={`/packages/${pkg.id}/analyze`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-gray-300 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Radio size={12} />
+                          <span>Run Audit</span>
+                        </Link>
                         <Link 
                           href={`/reports/${pkg.id}/history`}
                           className="inline-flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-1.5 rounded-lg transition-colors"

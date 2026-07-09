@@ -20,6 +20,10 @@ export default function NewPackagePage() {
   const [name, setName] = useState("");
   const [destination, setDestination] = useState("");
   const [duration, setDuration] = useState(1);
+  const [targetDate, setTargetDate] = useState("");
+  const [adults, setAdults] = useState(2);
+  const [childrenCount, setChildrenCount] = useState(0);
+  const [rooms, setRooms] = useState(1);
 
   // Live Exchange Rate
   const [exchangeRate, setExchangeRate] = useState(305);
@@ -62,7 +66,11 @@ export default function NewPackagePage() {
       const payload = {
         name,
         destination,
+        target_date: targetDate ? new Date(targetDate).toISOString() : null,
         duration_days: duration,
+        adults,
+        children: childrenCount,
+        rooms,
         total_price_lkr: totalUsd * exchangeRate,
         components: components.map(c => ({
           component_type: c.type,
@@ -139,6 +147,17 @@ export default function NewPackagePage() {
                   />
                 </div>
 
+                {/* Target Date */}
+                <div className="flex flex-col gap-2 relative group">
+                  <label className="text-[11px] font-bold text-sky-200/70 uppercase tracking-widest transition-colors group-focus-within:text-sky-400">Target Check-In Date (Optional)</label>
+                  <input 
+                    type="date" 
+                    value={targetDate} 
+                    onChange={(e) => setTargetDate(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
+                  />
+                </div>
+
                 {/* Duration (Days) */}
                 <div className="flex flex-col gap-2 relative group">
                   <label className="text-[11px] font-bold text-sky-200/70 uppercase tracking-widest transition-colors group-focus-within:text-sky-400">Duration (Days)</label>
@@ -149,6 +168,40 @@ export default function NewPackagePage() {
                     onChange={(e) => setDuration(Number(e.target.value))}
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
                   />
+                </div>
+
+                {/* Occupancy */}
+                <div className="grid grid-cols-3 gap-4 col-span-1 md:col-span-2">
+                  <div className="flex flex-col gap-2 relative group">
+                    <label className="text-[11px] font-bold text-sky-200/70 uppercase tracking-widest transition-colors group-focus-within:text-sky-400">Adults</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      value={adults} 
+                      onChange={(e) => setAdults(Number(e.target.value))}
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 relative group">
+                    <label className="text-[11px] font-bold text-sky-200/70 uppercase tracking-widest transition-colors group-focus-within:text-sky-400">Children</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      value={childrenCount} 
+                      onChange={(e) => setChildrenCount(Number(e.target.value))}
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 relative group">
+                    <label className="text-[11px] font-bold text-sky-200/70 uppercase tracking-widest transition-colors group-focus-within:text-sky-400">Rooms</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      value={rooms} 
+                      onChange={(e) => setRooms(Number(e.target.value))}
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

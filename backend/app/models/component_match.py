@@ -10,7 +10,7 @@ class ComponentMatch(Base):
     __tablename__ = "component_matches"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    package_component_id = Column(Integer, ForeignKey("package_components.id"))
+    package_component_id = Column(Integer, ForeignKey("package_components.id", ondelete="CASCADE"))
     ota_listing_id = Column(Integer, ForeignKey("ota_listings.id"))
     confidence = Column(Numeric(5, 2))                      # 0-100
     match_method = Column(String)                           # 'embedding' | 'llm_verified' | 'manual'

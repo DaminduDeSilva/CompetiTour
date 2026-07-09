@@ -10,12 +10,37 @@ class ComponentCreate(BaseModel):
     base_price_lkr: float
     notes: Optional[str] = None
 
+class ComponentUpdate(BaseModel):
+    id: Optional[int] = None
+    component_type: str
+    name: str
+    location: Optional[str] = None
+    nights_or_duration: Optional[str] = None
+    base_price_lkr: float
+    notes: Optional[str] = None
+
 class PackageCreate(BaseModel):
     name: str
     destination: str
     duration_days: int
+    adults: Optional[int] = 2
+    children: Optional[int] = 0
+    rooms: Optional[int] = 1
+    target_date: Optional[datetime] = None
     total_price_lkr: float
     components: List[ComponentCreate]
+
+class PackageUpdate(BaseModel):
+    name: Optional[str] = None
+    destination: Optional[str] = None
+    duration_days: Optional[int] = None
+    adults: Optional[int] = None
+    children: Optional[int] = None
+    rooms: Optional[int] = None
+    target_date: Optional[datetime] = None
+    total_price_lkr: Optional[float] = None
+    status: Optional[str] = None
+    components: Optional[List[ComponentUpdate]] = None
 
 class OTAListingResponse(BaseModel):
     id: int
@@ -23,6 +48,7 @@ class OTAListingResponse(BaseModel):
     component_type: str
     raw_name: str
     price: Optional[float] = None
+    price_usd: Optional[float] = None
     currency: Optional[str] = None
     url: Optional[str] = None
 
@@ -73,6 +99,10 @@ class PackageResponse(BaseModel):
     name: str
     destination: str
     duration_days: int
+    adults: int
+    children: int
+    rooms: int
+    target_date: Optional[datetime] = None
     total_price_lkr: float
     status: str
     components: List[ComponentResponse] = []

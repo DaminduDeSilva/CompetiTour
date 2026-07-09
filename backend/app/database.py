@@ -1,5 +1,6 @@
 """SQLAlchemy async engine and session factory."""
 
+from click import echo
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -9,7 +10,8 @@ settings = get_settings()
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.ENVIRONMENT == "development",
+    #echo=settings.ENVIRONMENT == "development",
+    echo=False,
     pool_size=10,
     max_overflow=20,
     connect_args={"statement_cache_size": 0},

@@ -63,10 +63,13 @@ class BookingComScraper:
         "ja-JP": "ja-JP,ja;q=0.9,en;q=0.8",
     }
 
-    def __init__(self, locale: str = "de-DE", nights: int = 3, checkin_date: Optional[date] = None, target_currency: str = "USD"):
+    def __init__(self, locale: str = "de-DE", nights: int = 3, checkin_date: Optional[date] = None, target_currency: str = "USD", adults: int = 2, children: int = 0, rooms: int = 1):
         self.locale = locale
         self.nights = nights
         self.target_currency = target_currency
+        self.adults = adults
+        self.children = children
+        self.rooms = rooms
         if checkin_date:
             self.checkin = checkin_date
         else:
@@ -80,10 +83,13 @@ class BookingComScraper:
         """Constructs the Booking.com search results URL for a given destination."""
         params = {
             "ss": destination,
-            "checkin": self.checkin.isoformat(),
-            "checkout": self.checkout.isoformat(),
-            "group_adults": "2",
-            "no_rooms": "1",
+            "checkin": self.checkin.strftime("%Y-%m-%d"),
+            "checkout": self.checkout.strftime("%Y-%m-%d"),
+            "group_adults": str(self.adults),
+            "req_adults": str(self.adults),
+            "group_children": str(self.children),
+            "req_children": str(self.children),
+            "no_rooms": str(self.rooms),
             "selected_currency": self.target_currency,
             "lang": self.locale.replace("-", "_").lower(),
         }
@@ -104,19 +110,6 @@ class BookingComScraper:
             logger.debug(f"Could not parse price from: '{price_text}'")
             return None
 
-    async def _scrape_with_proxy(self, url: str, proxy_type: str, country_code: str, accept_language: str) -> list["HotelResult"]:
-        """Internal: performs the actual page load + card extraction with a given proxy type."""
-        # Small random delay to avoid burst fingerprinting
-        await asyncio.sleep(random.uniform(1.0, 3.0))
-        async with ScraperBrowser(proxy_type=proxy_type, country_code=country_code) as page:
-            await page.set_extra_http_headers({
-                "Accept-Language": accept_language,
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            })
-            logger.info(f"[Booking.com] Navigating via {proxy_type} proxy...")
-            await page.goto(url, wait_until="domcontentloaded", timeout=15000)
-            return page  # return page for further processing
-
     async def scrape(self, destination: str, max_results: int = 15) -> list["HotelResult"]:
         """
         Performs the full scrape for a destination.
@@ -136,16 +129,8 @@ class BookingComScraper:
         accept_language = self.LOCALE_HEADERS.get(self.locale, "en-US,en;q=0.9")
         country_code = self.locale.split("-")[1].upper() if "-" in self.locale else "DE"
 
-        import uuid
-        session_1 = uuid.uuid4().hex[:8]
-        session_2 = uuid.uuid4().hex[:8]
-        session_3 = uuid.uuid4().hex[:8]
-        
-        # Try residential multiple times with rotating IPs, then fall back to ISP
         proxy_attempts = [
-            ("residential", country_code, session_1),
-            ("residential", country_code, session_2),
-            ("residential", country_code, session_3),
+            ("residential", country_code, None),
             ("isp", country_code, None)
         ]
         page_ctx = None
@@ -153,8 +138,8 @@ class BookingComScraper:
 
         for proxy_type, cc, session_id in proxy_attempts:
             try:
-                # Small random delay between retries
-                await asyncio.sleep(random.uniform(1.5, 4.0))
+                # Small fixed delay between retries
+                await asyncio.sleep(0.5)
                 page_ctx = ScraperBrowser(proxy_type=proxy_type, country_code=cc, session_id=session_id)
                 page = await page_ctx.__aenter__()
                 await page.set_extra_http_headers({
@@ -162,9 +147,111 @@ class BookingComScraper:
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 })
                 logger.info(f"[Booking.com] Navigating via {proxy_type} proxy...")
-                await page.goto(url, wait_until="commit", timeout=30000)
+                await page.goto(url, wait_until="commit", timeout=15000)
                 used_proxy = proxy_type
+                
+                # Handle consent/cookie banner if present (common on EU locales)
+                try:
+                    consent_btn = page.locator('[id="onetrust-accept-btn-handler"], [aria-label="Accept"], button:has-text("Accept")').first
+                    if await consent_btn.is_visible(timeout=1500):
+                        await consent_btn.click()
+                        logger.info("[Booking.com] Dismissed cookie consent banner.")
+                        await page.wait_for_timeout(1000)
+                except Exception:
+                    pass  # No banner, continue
+
+                # Wait for property cards to load
+                try:
+                    el = await page.wait_for_selector('[data-testid="property-card"], #challenge-container', timeout=15000)
+                    if await el.get_attribute("id") == "challenge-container":
+                        logger.info("[Booking.com] WAF challenge detected. Waiting for it to resolve...")
+                        await page.wait_for_selector('[data-testid="property-card"]', timeout=15000)
+                    logger.info("[Booking.com] Property cards loaded.")
+                except Exception as e:
+                    # Check if we were blocked or got a captcha
+                    try:
+                        html = await page.content()
+                        block_indicators = ["access denied", "pardon our interruption", "robot check", "security challenge", "automated agent", "verify you are a human", "press & hold", "press and hold", "something went wrong"]
+                        is_blocked = any(ind in html.lower() for ind in block_indicators) or len(html) < 5000
+                        if is_blocked:
+                            title = await page.title()
+                            with open("dump.html", "w") as f:
+                                f.write(html)
+                            raise Exception(f"Blocked or empty page (Title: {title}, html={len(html)}b)")
+                    except Exception as block_err:
+                        if "Blocked" in str(block_err):
+                            raise block_err
+                    logger.warning("[Booking.com] Timeout waiting for property cards — page may have changed structure.")
+                    cards = []
+                else:
+                    cards = await page.query_selector_all('[data-testid="property-card"]')
+
+                logger.info(f"[Booking.com] Found {len(cards)} property cards. Extracting top {max_results}...")
+
+                for card in cards[:max_results]:
+                    try:
+                        # --- Property Name ---
+                        name_el = await card.query_selector('[data-testid="title"]')
+                        name = (await name_el.inner_text()).strip() if name_el else "Unknown"
+
+                        # --- Room/Unit Type ---
+                        room_el = await card.query_selector('[data-testid="recommended-units"] h4, .hprt-table .hprt-roomtype-icon-link')
+                        room_type = (await room_el.inner_text()).strip() if room_el else None
+
+                        # --- Price ---
+                        price_el = await card.query_selector(
+                            '[data-testid="price-and-discounted-price"] [data-testid="price-and-discounted-price"] span, '
+                            '[data-testid="price-and-discounted-price"], '
+                            '.bui-price-display__value, '
+                            '[data-testid="priceForXNights"]'
+                        )
+                        raw_price_text = (await price_el.inner_text()).strip() if price_el else ""
+                        total_price = self._parse_price(raw_price_text)
+                        price_per_night = round(total_price / self.nights, 2) if total_price else None
+
+                        # --- Detect currency from page ---
+                        currency = self.target_currency
+                        if raw_price_text:
+                            if "£" in raw_price_text:
+                                currency = "GBP"
+                            elif "$" in raw_price_text:
+                                currency = "USD"
+                            elif "A$" in raw_price_text:
+                                currency = "AUD"
+                            elif "€" in raw_price_text:
+                                currency = "EUR"
+                            elif "¥" in raw_price_text or "￥" in raw_price_text or "JPY" in raw_price_text:
+                                currency = "JPY"
+
+                        # --- Property URL ---
+                        link_el = await card.query_selector('a[data-testid="title-link"]')
+                        href = await link_el.get_attribute("href") if link_el else ""
+                        full_url = f"https://www.booking.com{href}" if href and href.startswith("/") else href
+
+                        result = HotelResult(
+                            name=name,
+                            room_type=room_type,
+                            price_per_night=price_per_night,
+                            total_price=total_price,
+                            currency=currency,
+                            nights=self.nights,
+                            url=full_url,
+                            raw_price_text=raw_price_text,
+                        )
+                        results.append(result)
+                        logger.info(f"  → {name} | {room_type} | {raw_price_text}")
+
+                    except Exception as e:
+                        logger.warning(f"[Booking.com] Failed to parse card: {e}")
+                        continue
+                
+                # Success! Close browser and exit proxy loop
+                try:
+                    await page_ctx.__aexit__(None, None, None)
+                except Exception:
+                    pass
                 break
+
             except Exception as e:
                 logger.warning(f"[Booking.com] {proxy_type} proxy failed for '{destination}': {type(e).__name__} - {str(e)}. {'Retrying with ISP...' if proxy_type == 'residential' else 'All proxies exhausted.'}")
                 if page_ctx:
@@ -178,109 +265,6 @@ class BookingComScraper:
                     logger.error(f"[Booking.com] Both proxies failed for '{destination}'. Returning empty results.")
                     return []
                 continue
-
-        # All proxy attempts done — if page is None we already returned []
-        if page is None:
-            return []
-
-        try:
-            # Handle consent/cookie banner if present (common on EU locales)
-            try:
-                consent_btn = page.locator('[id="onetrust-accept-btn-handler"], [aria-label="Accept"], button:has-text("Accept")').first
-                if await consent_btn.is_visible(timeout=3000):
-                    await consent_btn.click()
-                    logger.info("[Booking.com] Dismissed cookie consent banner.")
-                    await page.wait_for_timeout(1000)
-            except Exception:
-                pass  # No banner, continue
-
-            # Wait for property cards to load
-            try:
-                await page.wait_for_selector('[data-testid="property-card"]', timeout=8000)
-                logger.info("[Booking.com] Property cards loaded.")
-            except Exception as e:
-                # Check if we were blocked or got a captcha
-                try:
-                    html = await page.content()
-                    block_indicators = ["access denied", "pardon our interruption", "robot check", "security challenge", "automated agent", "verify you are a human", "press & hold", "press and hold", "something went wrong"]
-                    is_blocked = any(ind in html.lower() for ind in block_indicators) or len(html) < 5000
-                    if is_blocked:
-                        title = await page.title()
-                        raise Exception(f"Blocked or empty page (Title: {title}, html={len(html)}b)")
-                except Exception as block_err:
-                    if "Blocked" in str(block_err):
-                        raise block_err
-                logger.warning("[Booking.com] Timeout waiting for property cards — page may have changed structure.")
-                cards = []
-            else:
-                cards = await page.query_selector_all('[data-testid="property-card"]')
-
-            logger.info(f"[Booking.com] Found {len(cards)} property cards. Extracting top {max_results}...")
-
-            for card in cards[:max_results]:
-                try:
-                    # --- Property Name ---
-                    name_el = await card.query_selector('[data-testid="title"]')
-                    name = (await name_el.inner_text()).strip() if name_el else "Unknown"
-
-                    # --- Room/Unit Type ---
-                    room_el = await card.query_selector('[data-testid="recommended-units"] h4, .hprt-table .hprt-roomtype-icon-link')
-                    room_type = (await room_el.inner_text()).strip() if room_el else None
-
-                    # --- Price ---
-                    price_el = await card.query_selector(
-                        '[data-testid="price-and-discounted-price"] [data-testid="price-and-discounted-price"] span, '
-                        '[data-testid="price-and-discounted-price"], '
-                        '.bui-price-display__value, '
-                        '[data-testid="priceForXNights"]'
-                    )
-                    raw_price_text = (await price_el.inner_text()).strip() if price_el else ""
-                    total_price = self._parse_price(raw_price_text)
-                    price_per_night = round(total_price / self.nights, 2) if total_price else None
-
-                    # --- Detect currency from page ---
-                    currency = self.target_currency
-                    if raw_price_text:
-                        if "£" in raw_price_text:
-                            currency = "GBP"
-                        elif "$" in raw_price_text:
-                            currency = "USD"
-                        elif "A$" in raw_price_text:
-                            currency = "AUD"
-                        elif "€" in raw_price_text:
-                            currency = "EUR"
-                        elif "¥" in raw_price_text:
-                            currency = "JPY"
-
-                    # --- Property URL ---
-                    link_el = await card.query_selector('a[data-testid="title-link"]')
-                    href = await link_el.get_attribute("href") if link_el else ""
-                    full_url = f"https://www.booking.com{href}" if href and href.startswith("/") else href
-
-                    result = HotelResult(
-                        name=name,
-                        room_type=room_type,
-                        price_per_night=price_per_night,
-                        total_price=total_price,
-                        currency=currency,
-                        nights=self.nights,
-                        url=full_url,
-                        raw_price_text=raw_price_text,
-                    )
-                    results.append(result)
-                    logger.info(f"  → {name} | {room_type} | {raw_price_text}")
-
-                except Exception as e:
-                    logger.warning(f"[Booking.com] Failed to parse card: {e}")
-                    continue
-
-        finally:
-            # Always close the manually-entered browser context
-            if page_ctx:
-                try:
-                    await page_ctx.__aexit__(None, None, None)
-                except Exception:
-                    pass
 
         logger.info(f"[Booking.com] Scrape complete. {len(results)} results extracted.")
 
@@ -306,15 +290,15 @@ class BookingComScraper:
         # Build a clean hotel detail URL (strip tracking params, keep dates)
         parsed = urllib.parse.urlparse(url)
         qs = urllib.parse.parse_qs(parsed.query)
-        checkin_str = qs.get("checkin", [self.checkin.isoformat()])[0]
-        checkout_str = qs.get("checkout", [self.checkout.isoformat()])[0]
+        checkin_str = qs.get("checkin", [self.checkin.strftime("%Y-%m-%d") if self.checkin else ""])[0]
+        checkout_str = qs.get("checkout", [self.checkout.strftime("%Y-%m-%d") if self.checkout else ""])[0]
 
         # Normalise path: strip locale suffix (.de.html → .html) for API pagename extraction
         clean_path = re.sub(r'\.[a-z]{2}(-[a-z]{2})?\.html$', '.html', parsed.path)
         clean_url = (
             f"https://www.booking.com{clean_path}"
             f"?checkin={checkin_str}&checkout={checkout_str}"
-            f"&group_adults=2&no_rooms=1&selected_currency={self.target_currency}"
+            f"&group_adults={self.adults}&no_rooms={self.rooms}&selected_currency={self.target_currency}"
         )
 
         accept_language = self.LOCALE_HEADERS.get(self.locale, "de-DE,de;q=0.9,en;q=0.8")
@@ -330,7 +314,33 @@ class BookingComScraper:
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 })
 
-                await page.goto(clean_url, wait_until="domcontentloaded", timeout=15000)
+                await page.goto(clean_url, wait_until="commit", timeout=45000)
+
+                try:
+                    el = await page.wait_for_selector('h2, #challenge-container', timeout=15000)
+                    if await el.get_attribute("id") == "challenge-container":
+                        logger.info("[Booking.com Detail] WAF challenge detected. Waiting for it to resolve...")
+                        await page.wait_for_selector('h2', timeout=15000)
+                except Exception:
+                    pass
+
+                # --- NEW DOM EXTRACTION LOGIC (Fallback from manual testing) ---
+                # Attempt to extract price directly from HTML elements before trying complex GraphQL
+                try:
+                    await page.wait_for_timeout(2000) # Let dynamic prices load
+                    price_elements = await page.query_selector_all('.prco-valign-middle-helper, [data-testid="price-and-discounted-price"], .bui-price-display__value')
+                    for p_el in price_elements:
+                        text = await p_el.inner_text()
+                        if text:
+                            val = self._parse_price(text)
+                            if val and val > 0:
+                                logger.info(f"[Booking.com] Detail page DOM extraction SUCCESS via {proxy_type}: {val} (raw: {text.strip()})")
+                                await page_ctx.__aexit__(None, None, None)
+                                return val
+                    logger.debug(f"[Booking.com] DOM extraction found no valid prices via {proxy_type}. Proceeding to GraphQL...")
+                except Exception as dom_e:
+                    logger.debug(f"[Booking.com] DOM extraction failed: {dom_e}")
+                # ---------------------------------------------------------------
 
                 # Hotel meta (hotelCountry, b_csrf_token) is JS-rendered.
                 # Retry scroll+wait up to 3 times until the full page renders.
@@ -338,7 +348,7 @@ class BookingComScraper:
                 hotel_country_m = hotel_name_m = csrf_m = None
                 for _wait_attempt in range(3):
                     await page.evaluate("window.scrollBy(0, 1200)")
-                    await page.wait_for_timeout(5000 if _wait_attempt == 0 else 3000)
+                    await page.wait_for_timeout(2000)
                     html = await page.content()
                     hotel_country_m = re.search(r'hotelCountry[^a-zA-Z0-9]{1,5}["\']([^"\']+)["\']', html)
                     hotel_name_m = re.search(r'hotelName[^a-zA-Z0-9]{1,5}["\']([^"\']+)["\']', html)
@@ -446,12 +456,10 @@ class BookingComScraper:
                     continue
 
                 # Parse daily prices from response
-                days = (
-                    (gql_response or {})
-                    .get("data", {})
-                    .get("availabilityCalendar", {})
-                    .get("days", [])
-                )
+                data = (gql_response or {}).get("data") or {}
+                avail_cal = data.get("availabilityCalendar") or {}
+                days = avail_cal.get("days") or []
+
                 prices = []
                 for day in days:
                     if day.get("available") and day.get("avgPriceFormatted"):

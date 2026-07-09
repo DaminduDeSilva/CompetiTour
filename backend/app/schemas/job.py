@@ -18,6 +18,6 @@ class AnalysisJobResponse(BaseModel):
     created_at: datetime
     completed_at: Optional[datetime] = None
     error_log: Optional[str] = None
-
+    current_detail: Optional[str] = None
     class Config:
         from_attributes = True

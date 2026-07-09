@@ -70,9 +70,12 @@ class AgodaScraper:
         "ja-JP": "ja-JP,ja;q=0.9,en;q=0.8",
     }
 
-    def __init__(self, locale: str = "de-DE", nights: int = 3, checkin_date: Optional[date] = None):
+    def __init__(self, locale: str = "de-DE", nights: int = 3, checkin_date: Optional[date] = None, adults: int = 2, children: int = 0, rooms: int = 1):
         self.locale = locale
         self.nights = nights
+        self.adults = adults
+        self.children = children
+        self.rooms = rooms
         if checkin_date:
             self.checkin = checkin_date
         else:
@@ -93,7 +96,7 @@ class AgodaScraper:
             f"?q={dest_encoded}"
             f"&checkIn={checkin_str}"
             f"&checkOut={checkout_str}"
-            f"&rooms=1&adults=2"
+            f"&rooms={self.rooms}&adults={self.adults}&children={self.children}"
             f"&cid=-218&currency=USD"
         )
 
@@ -132,6 +135,7 @@ class AgodaScraper:
             try:
                 browser_ctx = ScraperBrowser(proxy_type=proxy_type, country_code=country_code)
                 page = await browser_ctx.__aenter__()
+
                 await page.set_extra_http_headers({
                     "Accept-Language": accept_language,
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -139,7 +143,7 @@ class AgodaScraper:
                     "Sec-Fetch-Mode": "navigate",
                 })
                 logger.info("[Agoda] Navigating to search results...")
-                await page.goto(url, wait_until="networkidle", timeout=35000)
+                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
             except ValueError as e:
                 logger.warning(f"[Agoda] ISP proxy unavailable ({e}), falling back to residential proxy.")
                 if browser_ctx:
@@ -147,6 +151,7 @@ class AgodaScraper:
                 
                 browser_ctx = ScraperBrowser(proxy_type="residential", country_code=country_code)
                 page = await browser_ctx.__aenter__()
+
                 await page.set_extra_http_headers({
                     "Accept-Language": accept_language,
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -154,7 +159,7 @@ class AgodaScraper:
                     "Sec-Fetch-Mode": "navigate",
                 })
                 logger.info("[Agoda] Fallback: Navigating to search results via residential proxy...")
-                await page.goto(url, wait_until="domcontentloaded", timeout=35000)
+                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
 
             # Handle cookie consent (common in EU)
             try:
@@ -170,7 +175,7 @@ class AgodaScraper:
             try:
                 await page.wait_for_selector(
                     '[data-selenium="hotel-item"], .PropertyCard, li[data-element-name="search-result-hotel-card"]',
-                    timeout=15000
+                    timeout=8000
                 )
                 logger.info("[Agoda] Property cards loaded.")
             except Exception:

@@ -33,7 +33,10 @@ export default function NotificationsPage() {
               const marketNames: Record<number, { name: string; flag: string; code: string }> = {
                 1: { name: "Germany", flag: "🇩🇪", code: "DE" },
                 2: { name: "United Kingdom", flag: "🇬🇧", code: "GB" },
-                3: { name: "Australia", flag: "🇦🇺", code: "AU" }
+                3: { name: "Australia", flag: "🇦🇺", code: "AU" },
+                4: { name: "France", flag: "🇫🇷", code: "FR" },
+                5: { name: "United States", flag: "🇺🇸", code: "US" },
+                6: { name: "Japan", flag: "🇯🇵", code: "JP" }
               };
               const marketInfo = marketNames[rep.source_market_id] || { name: "Germany", flag: "🇩🇪", code: "DE" };
               const varianceVal = rep.price_delta_pct;

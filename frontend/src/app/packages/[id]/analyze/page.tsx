@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CURRENT_USAGE, getCurrentPlan, getAuditLimit, formatLimit, isQuotaExhausted } from "@/lib/quota";
-import { fetchDashboardPackage } from "@/app/dashboard/actions";
+import { fetchDashboardPackage, runPackageAudit, getJobStatus } from "@/app/dashboard/actions";
 
 interface Step {
   id: number;
@@ -38,8 +38,12 @@ export default function AnalyzePage() {
   const [isConfiguring, setIsConfiguring] = useState(true);
   const [showQuotaGate, setShowQuotaGate] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [currentStepId, setCurrentStepId] = useState(1);
+  const [currentStepId, setCurrentStepId] = useState<number>(1);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [finished, setFinished] = useState(false);
+  const [selectedMarkets, setSelectedMarkets] = useState<string[]>(["DE"]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [realLogs, setRealLogs] = useState<string[]>(["[System] Audit job configured and initializing..."]);
 
   const [steps, setSteps] = useState<Step[]>([
     {
@@ -100,7 +104,7 @@ export default function AnalyzePage() {
       sublabel: "Analyzing pricing margins, leakages, and compiling PDF report",
       status: "pending",
       logs: [
-        "[09:30:23] Normalizing currency rates: USD to LKR (Rate: 305.00)",
+        "[09:30:23] Normalizing currency rates: USD to LKR (Live Rate)",
         "[09:30:24] Calculating cost components difference...",
         "[09:30:25] Package sum-of-parts in Germany: $7,120. Your price: $5,660.",
         "[09:30:26] Pricing Gap (Margin Leakage): -20.5%",
@@ -126,47 +130,90 @@ export default function AnalyzePage() {
     loadPackage();
   }, [params.id]);
 
-  // Stepper logic
+  // Real polling logic
   useEffect(() => {
-    if (isConfiguring || finished) return;
+    if (isConfiguring || finished || !activeJobId) return;
 
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + 1;
-        if (next >= 100) {
-          clearInterval(interval);
-          setFinished(true);
-          // Mark final step success
+    let pollingInterval: NodeJS.Timeout;
+
+    const pollStatus = async () => {
+      try {
+        const res = await getJobStatus(activeJobId);
+        if (res.data) {
+          const { status, total_tasks, completed_tasks, current_detail } = res.data;
+          
+          if (current_detail) {
+            setRealLogs((prev) => {
+              const formatted = `[${new Date().toLocaleTimeString()}] ${current_detail}`;
+              if (prev[prev.length - 1] !== formatted) {
+                return [...prev, formatted];
+              }
+              return prev;
+            });
+          }
+
+          let targetProgress = progress;
+          let targetStep = currentStepId;
+
+          if (status === "queued") {
+            targetProgress = 10;
+            targetStep = 1;
+          } else if (status === "scraping") {
+            // Give it some base progress, then calculate based on tasks
+            const baseProgress = 20;
+            const taskProgress = total_tasks > 0 ? (completed_tasks / total_tasks) * 40 : 0;
+            targetProgress = baseProgress + taskProgress;
+            targetStep = 2;
+          } else if (status === "matching") {
+            targetProgress = 70;
+            targetStep = 3;
+          } else if (status === "reporting") {
+            targetProgress = 90;
+            targetStep = 4;
+          } else if (status === "done") {
+            targetProgress = 100;
+            targetStep = 5;
+            setFinished(true);
+            clearInterval(pollingInterval);
+          } else if (status === "failed") {
+            // Could handle error state here
+            clearInterval(pollingInterval);
+            alert("Audit failed on the server.");
+          }
+
+          setProgress(targetProgress);
+          setCurrentStepId(targetStep);
+
           setSteps((prevSteps) => {
-            const nextSteps = [...prevSteps];
-            nextSteps[4].status = "success";
-            return nextSteps;
+            return prevSteps.map((s, idx) => {
+              if (idx < targetStep - 1) {
+                return { ...s, status: "success" as const };
+              } else if (idx === targetStep - 1) {
+                return { ...s, status: status === "done" ? "success" as const : "running" as const };
+              } else {
+                return { ...s, status: "pending" as const };
+              }
+            });
           });
-          return 100;
         }
+      } catch (err) {
+        console.error("Polling error", err);
+      }
+    };
 
-        // Stepper calculation: 5 steps, 20% each
-        const stepIndex = Math.floor(next / 20);
-        setCurrentStepId(stepIndex + 1);
+    // Poll every 3 seconds
+    pollingInterval = setInterval(pollStatus, 3000);
+    // Initial call
+    pollStatus();
 
-        setSteps((prevSteps) => {
-          const nextSteps = prevSteps.map((s, idx) => {
-            if (idx < stepIndex) {
-              return { ...s, status: "success" as const };
-            } else if (idx === stepIndex) {
-              return { ...s, status: "running" as const };
-            } else {
-              return { ...s, status: "pending" as const };
-            }
-          });
-          return nextSteps;
-        });
+    return () => clearInterval(pollingInterval);
+  }, [finished, isConfiguring, activeJobId]);
 
-        return next;
-      });
-    }, 150); // Fast animation
-    return () => clearInterval(interval);
-  }, [finished, isConfiguring]);
+  useEffect(() => {
+    if (finished) {
+      router.push(`/reports/${params.id}/history`);
+    }
+  }, [finished, router, params.id]);
 
   if (isLoadingPackage) {
     return (
@@ -202,17 +249,24 @@ export default function AnalyzePage() {
               
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[
-                  { code: "DE", name: "Germany", flag: "🇩🇪", checked: true },
-                  { code: "GB", name: "United Kingdom", flag: "🇬🇧", checked: true },
-                  { code: "AU", name: "Australia", flag: "🇦🇺", checked: true },
-                  { code: "FR", name: "France", flag: "🇫🇷", checked: false },
-                  { code: "US", name: "United States", flag: "🇺🇸", checked: false },
-                  { code: "JP", name: "Japan", flag: "🇯🇵", checked: false },
+                  { code: "DE", name: "Germany", flag: "🇩🇪" },
+                  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
+                  { code: "AU", name: "Australia", flag: "🇦🇺" },
+                  { code: "FR", name: "France", flag: "🇫🇷" },
+                  { code: "US", name: "United States", flag: "🇺🇸" },
+                  { code: "JP", name: "Japan", flag: "🇯🇵" },
                 ].map((m) => (
                   <label key={m.code} className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/10 cursor-pointer hover:border-zinc-700 transition-colors">
                     <input 
                       type="checkbox" 
-                      defaultChecked={m.checked}
+                      checked={selectedMarkets.includes(m.code)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedMarkets([...selectedMarkets, m.code]);
+                        } else {
+                          setSelectedMarkets(selectedMarkets.filter(c => c !== m.code));
+                        }
+                      }}
                       className="rounded border-zinc-700 bg-zinc-950 text-sky-500 focus:ring-sky-500/20"
                     />
                     <span className="text-xs text-gray-300 flex items-center gap-1.5">
@@ -234,8 +288,6 @@ export default function AnalyzePage() {
                 {[
                   { id: "booking", name: "Booking.com", checked: true },
                   { id: "agoda", name: "Agoda", checked: true },
-                  { id: "expedia", name: "Expedia", checked: false },
-                  { id: "viator", name: "Viator", checked: true },
                 ].map((platform) => (
                   <label key={platform.id} className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/10 cursor-pointer hover:border-zinc-700 transition-colors">
                     <input 
@@ -248,25 +300,7 @@ export default function AnalyzePage() {
                 ))}
               </div>
 
-              <div className="h-px bg-zinc-900 my-2" />
 
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Shield size={16} className="text-purple-400" />
-                Proxy Routing Profile
-              </h3>
-              <p className="text-xs text-gray-400 -mt-3">Define the proxy tunneling infrastructure used to query the OTA search endpoints.</p>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-semibold text-gray-400">Proxy Product Category</label>
-                <select 
-                  defaultValue="premium_residential"
-                  className="w-full px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs focus:border-sky-500 focus:outline-none text-white font-medium appearance-none"
-                >
-                  <option value="premium_residential">Premium Residential Proxies (Anti-bot Bypass)</option>
-                  <option value="isp">ISP Proxies (Stable Sticky Sessions)</option>
-                  <option value="dual_proxy">Dual-Proxy Orchestration (Recommended)</option>
-                </select>
-              </div>
             </div>
           </div>
 
@@ -277,6 +311,29 @@ export default function AnalyzePage() {
                 <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded uppercase">Target Package</span>
                 <h3 className="text-base font-bold text-white mt-2">{packageData?.name || "Loading..."}</h3>
                 <p className="text-xs text-gray-300 mt-1">{packageData?.duration_days} Days · {packageData?.destination} · ${packageData?.total_price_lkr} USD</p>
+                
+                {packageData && (
+                  <div className="mt-3 flex items-center gap-3 text-[11px] font-medium text-gray-400 bg-black/20 p-2.5 rounded-lg border border-white/5">
+                    <div className="flex flex-col">
+                      <span className="text-gray-500 uppercase text-[9px] font-bold tracking-wider">Occupancy</span>
+                      <span>{packageData.adults || 2} Adults, {packageData.children || 0} Children</span>
+                    </div>
+                    <div className="w-px h-6 bg-white/10 mx-1" />
+                    <div className="flex flex-col">
+                      <span className="text-gray-500 uppercase text-[9px] font-bold tracking-wider">Rooms</span>
+                      <span>{packageData.rooms || 1} Room(s)</span>
+                    </div>
+                    {packageData.target_date && (
+                      <>
+                        <div className="w-px h-6 bg-white/10 mx-1" />
+                        <div className="flex flex-col">
+                          <span className="text-gray-500 uppercase text-[9px] font-bold tracking-wider">Target Date</span>
+                          <span>{new Date(packageData.target_date).toLocaleDateString()}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="h-px bg-zinc-900" />
@@ -297,17 +354,35 @@ export default function AnalyzePage() {
               </div>
 
               <button 
-                onClick={() => {
+                disabled={isSubmitting}
+                onClick={async () => {
                   if (isQuotaExhausted()) {
                     setShowQuotaGate(true);
                   } else {
-                    setIsConfiguring(false);
+                    if (selectedMarkets.length === 0) {
+                      alert("Please select at least one source market.");
+                      return;
+                    }
+                    setIsSubmitting(true);
+                    try {
+                      const res = await runPackageAudit(Number(params.id), selectedMarkets);
+                      if (res.success && res.data) {
+                        setActiveJobId(res.data.id);
+                        setIsConfiguring(false);
+                      } else {
+                        alert("Failed to start audit: " + (res.error || "Unknown error"));
+                        setIsSubmitting(false);
+                      }
+                    } catch (e) {
+                      alert("Error starting audit.");
+                      setIsSubmitting(false);
+                    }
                   }
                 }}
-                className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-sm font-bold text-white shadow-xl shadow-sky-500/10 hover:shadow-sky-500/20 active:scale-95 transition-all cursor-pointer"
+                className={`w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-sm font-bold text-white shadow-xl shadow-sky-500/10 hover:shadow-sky-500/20 active:scale-95 transition-all cursor-pointer ${isSubmitting ? "opacity-70 pointer-events-none" : ""}`}
               >
-                <Play size={16} fill="white" />
-                <span>Start Real-Time AI Audit</span>
+                {isSubmitting ? <Loader2 size={16} className="animate-spin text-white" /> : <Play size={16} fill="white" />}
+                <span>{isSubmitting ? "Queueing Audits..." : "Start Real-Time AI Audit"}</span>
               </button>
             </div>
           </div>
@@ -384,7 +459,7 @@ export default function AnalyzePage() {
             Running Pricing Audit
           </h2>
           <p className="text-xs text-gray-300 mt-1">
-            Analyzing package "{packageData?.name}" in target market Germany using real-time search queries
+            Analyzing package "{packageData?.name}" in target markets {selectedMarkets.join(", ")} using real-time search queries
           </p>
         </div>
         
@@ -460,11 +535,8 @@ export default function AnalyzePage() {
             </div>
 
             <div className="p-4 font-mono text-[10px] text-emerald-400/90 leading-relaxed overflow-y-auto h-80 flex flex-col gap-2 bg-black">
-              {/* Show logs from all steps that have started or succeeded */}
-              {steps
-                .filter((s) => s.status !== "pending")
-                .flatMap((s) => s.logs)
-                .map((log, idx) => (
+              {/* Show real logs fetched from the backend API */}
+              {realLogs.map((log, idx) => (
                   <div key={idx} className="transition-all duration-300 opacity-90 animate-fadeIn">
                     {log}
                   </div>

@@ -2,16 +2,49 @@ import logging
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import Optional
+from sqlalchemy import select, func
+from typing import Optional, List
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.dmc_package import DMCPackage
 from app.models.analysis_job import AnalysisJob
+from app.models.package_component import PackageComponent
 from app.schemas.job import AnalysisJobResponse
 from workers.tasks.audit_task import run_audit
+import asyncio
+
+async def run_multi_audit_parallel(package_id: int, source_markets: List[str], job_id: str):
+    """Runs multiple market audits in parallel to maximize proxy throughput."""
+    tasks = [
+        run_audit(package_id=package_id, source_market=market, job_id=job_id)
+        for market in source_markets
+    ]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    for i, result in enumerate(results):
+        if isinstance(result, Exception):
+            logger.error(f"Parallel audit for market {source_markets[i]} failed: {result}")
+            
+    # Mark job as done
+    from app.database import async_session_factory
+    from datetime import datetime
+    import uuid
+    try:
+        job_uuid = uuid.UUID(job_id)
+        async with async_session_factory() as session:
+            job_result = await session.execute(select(AnalysisJob).where(AnalysisJob.id == job_uuid))
+            job = job_result.scalar_one_or_none()
+            if job:
+                job.status = "done"
+                job.completed_at = datetime.utcnow()
+                await session.commit()
+    except Exception as e:
+        logger.error(f"Failed to update job status to done: {e}")
+
+class AuditRequest(BaseModel):
+    source_markets: List[str]
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -19,6 +52,7 @@ router = APIRouter()
 @router.post("/run-audit/{package_id}", response_model=AnalysisJobResponse)
 async def trigger_package_audit(
     package_id: int,
+    request: AuditRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -35,20 +69,32 @@ async def trigger_package_audit(
     if not package:
         raise HTTPException(status_code=404, detail="Package not found or access denied")
         
+    # Map string codes to IDs
+    market_map = {"DE": 1, "GB": 2, "AU": 3, "FR": 4, "US": 5, "JP": 6}
+    market_ids = [market_map.get(m, 1) for m in request.source_markets]
+    
+    result_components = await db.execute(
+        select(func.count(PackageComponent.id))
+        .where(PackageComponent.package_id == package_id)
+    )
+    component_count = result_components.scalar() or 0
+
     # Create AnalysisJob record to track progress
     job = AnalysisJob(
         package_id=package_id,
-        source_market_ids=[1],  # Default to DE (ID 1)
+        source_market_ids=market_ids,
         status="queued",
-        total_tasks=0,
+        total_tasks=len(request.source_markets) * component_count,
         completed_tasks=0
     )
     db.add(job)
     await db.commit()
     await db.refresh(job)
     
-    logger.info(f"Queueing pricing audit for package {package.id} ('{package.name}') with Job ID {job.id}")
-    background_tasks.add_task(run_audit, package_id=package.id, source_market="DE", job_id=str(job.id))
+    logger.info(f"Queueing pricing audits for package {package.id} ('{package.name}') in markets {request.source_markets} with Job ID {job.id}")
+    
+    # Run in parallel since residential proxies are isolated per market
+    background_tasks.add_task(run_multi_audit_parallel, package_id=package.id, source_markets=request.source_markets, job_id=str(job.id))
     
     return job
 

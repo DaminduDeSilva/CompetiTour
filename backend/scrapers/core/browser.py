@@ -41,14 +41,14 @@ class ScraperBrowser:
         
         page = await context.new_page()
         
-        # Block heavy assets to speed up residential proxy tunnels
-        async def intercept_route(route):
-            if route.request.resource_type in ["image", "media", "font"]:
+        async def handle_route(route):
+            if route.request.resource_type in ["image", "media", "font", "stylesheet"]:
                 await route.abort()
             else:
                 await route.continue_()
                 
-        await page.route("**/*", intercept_route)
+        # Block images and fonts to speed up slow residential proxies
+        await page.route("**/*", handle_route)
         
         return page
 

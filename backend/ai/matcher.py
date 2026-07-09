@@ -25,6 +25,7 @@ class ItineraryMatcher:
         if not dmc_words:
             return {"matched_hotel": None, "confidence": 0.0}
         
+        import difflib
         best_match = None
         best_score = 0.0
         
@@ -46,7 +47,10 @@ class ItineraryMatcher:
             if dmc_str in ota_str or ota_str in dmc_str:
                 substring_boost = 0.6
                 
-            score = max(jaccard, substring_boost)
+            # Sequence Matcher
+            seq_match = difflib.SequenceMatcher(None, dmc_str, ota_str).ratio()
+                
+            score = max(jaccard, substring_boost, seq_match)
             if score > best_score:
                 best_score = score
                 best_match = ota

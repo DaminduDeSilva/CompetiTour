@@ -163,36 +163,13 @@ export default function PackagesPage() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {auditingId === pkg.id ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-xs font-bold text-sky-400 select-none animate-pulse">
-                      <Clock size={13} className="animate-spin" />
-                      <span>Auditing...</span>
-                    </span>
-                  ) : (
-                    <button
-                      onClick={async () => {
-                        setAuditingId(pkg.id);
-                        try {
-                          const res = await runPackageAudit(pkg.id);
-                          if (res.success && res.data?.id) {
-                            setActiveJobId(res.data.id);
-                            setActivePackageName(pkg.name);
-                            setIsProgressModalOpen(true);
-                          } else {
-                            alert("Error triggering audit: " + (res.error || "No job ID returned"));
-                          }
-                        } catch (err: any) {
-                          alert("Failed to run audit: " + err.message);
-                        } finally {
-                          setAuditingId(null);
-                        }
-                      }}
+                    <Link
+                      href={`/packages/${pkg.id}/analyze`}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-950/60 hover:bg-zinc-900 text-xs font-bold text-gray-300 hover:text-white transition-all cursor-pointer"
                     >
                       <Play size={13} />
                       <span>Run Audit</span>
-                    </button>
-                  )}
+                    </Link>
                   {pkg.status !== "active" && pkg.status !== "pending" && (
                     <Link
                       href={`/reports/${pkg.id}/history`}

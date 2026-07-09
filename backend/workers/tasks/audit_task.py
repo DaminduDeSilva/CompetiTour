@@ -31,7 +31,7 @@ Exchange Rate:
 import asyncio
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from dataclasses import dataclass
 from typing import Optional
 
@@ -57,28 +57,29 @@ import httpx
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-_cached_rate = getattr(settings, "EXCHANGE_RATE_LKR_USD", None)
-_rate_fetch_time = 0
+_cached_rates = {}
+_rates_fetch_time = 0
 
-async def get_lkr_to_usd_rate() -> float:
-    global _cached_rate, _rate_fetch_time
+async def get_exchange_rates() -> dict:
+    global _cached_rates, _rates_fetch_time
     now = time.time()
-    if _cached_rate and (now - _rate_fetch_time < 3600):
-        return _cached_rate
+    if _cached_rates and (now - _rates_fetch_time < 3600):
+        return _cached_rates
 
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get("https://open.er-api.com/v6/latest/USD", timeout=5.0)
             if res.status_code == 200:
-                _cached_rate = float(res.json()["rates"]["LKR"])
-                _rate_fetch_time = now
-                logger.info(f"[Currency] Fetched live exchange rate: 1 USD = {_cached_rate} LKR")
-                return _cached_rate
+                _cached_rates = res.json()["rates"]
+                _rates_fetch_time = now
+                logger.info(f"[Currency] Fetched live exchange rates (base USD)")
+                return _cached_rates
     except Exception as e:
-        logger.warning(f"[Currency] Failed to fetch live rate: {e}")
+        logger.warning(f"[Currency] Failed to fetch live rates: {e}")
 
-    _cached_rate = getattr(settings, "EXCHANGE_RATE_LKR_USD", 305.00)
-    return _cached_rate
+    # Fallback if network fails
+    _cached_rates = {"LKR": getattr(settings, "EXCHANGE_RATE_LKR_USD", 305.00), "EUR": 0.88, "GBP": 0.75, "JPY": 160.0}
+    return _cached_rates
 
 
 @dataclass
@@ -95,6 +96,8 @@ class ComponentAuditResult:
     price_delta_pct: Optional[float]    # negative = DMC is cheaper (leakage opportunity)
                                         # positive = DMC is more expensive (at risk)
     matched_url: Optional[str] = None
+    ota_price_local: Optional[float] = None
+    ota_currency: Optional[str] = None
 
 
 @dataclass 
@@ -128,8 +131,12 @@ def _determine_status(delta_pct: float) -> str:
     else:
         return "competitive"
 
+def _clamp_delta(delta: float) -> float:
+    """Clamps percentage to prevent DB NUMERIC(6, 2) overflow."""
+    if delta > 9999.99: return 9999.99
+    if delta < -9999.99: return -9999.99
+    return delta
 
-from datetime import date
 
 async def _scrape_and_match_component(
     component: PackageComponent,
@@ -137,8 +144,11 @@ async def _scrape_and_match_component(
     locale: str,
     nights: int,
     matcher: ItineraryMatcher,
-    exchange_rate: float,
+    exchange_rates: dict,
     checkin_date: Optional[date] = None,
+    adults: int = 2,
+    children: int = 0,
+    rooms: int = 1,
 ) -> ComponentAuditResult:
     """
     Scrapes both Booking.com and Agoda for a single package component,
@@ -146,26 +156,31 @@ async def _scrape_and_match_component(
     """
     component_name = component.name
     dmc_price_lkr = float(component.base_price_lkr or 0)
-    dmc_price_usd = round(dmc_price_lkr / exchange_rate, 2)
+    rate_lkr = float(exchange_rates.get("LKR", 305.00))
+    dmc_price_usd = round(dmc_price_lkr / rate_lkr, 2)
 
     logger.info(f"[Audit] Processing component: '{component_name}' ({component.component_type})")
 
+    currency_map = {
+        "DE": "EUR", "GB": "GBP", "AU": "AUD",
+        "FR": "EUR", "US": "USD", "JP": "JPY"
+    }
+    target_currency = currency_map.get(source_market.upper(), "USD")
+
     # --- Step 1: Scrape OTA platforms sequentially ---
-    booking_scraper = BookingComScraper(locale=locale, nights=nights, checkin_date=checkin_date)
+    booking_scraper = BookingComScraper(
+        locale=locale, nights=nights, checkin_date=checkin_date, target_currency=target_currency,
+        adults=adults, children=children, rooms=rooms
+    )
     booking_results = None
     try:
-        booking_results = await booking_scraper.scrape(component_name, max_results=10)
+        booking_results = await booking_scraper.scrape(component_name, max_results=15)
     except Exception as e:
         logger.warning(f"[Audit] Booking.com scrape failed for '{component_name}': {e}")
         booking_results = e
 
-    agoda_scraper = AgodaScraper(locale=locale, nights=nights, checkin_date=checkin_date)
-    agoda_results = None
-    try:
-        agoda_results = await agoda_scraper.scrape(component_name, max_results=10)
-    except Exception as e:
-        logger.warning(f"[Audit] Agoda scrape failed for '{component_name}': {e}")
-        agoda_results = e
+    # Agoda disabled — Akamai blocks 95%+ of attempts, wastes ~60s per component
+    agoda_results = []
 
     # Flatten results, handle exceptions gracefully
     all_ota_results: list[HotelResult | AgodaHotelResult] = []
@@ -180,29 +195,82 @@ async def _scrape_and_match_component(
         logger.warning(f"[Audit] Agoda scrape failed for '{component_name}': {agoda_results}")
 
     if not all_ota_results:
-        logger.warning(f"[Audit] No OTA results found for '{component_name}'. Skipping.")
-        return ComponentAuditResult(
-            component_id=component.id,
-            component_name=component_name,
-            dmc_price_usd=dmc_price_usd,
-            matched_hotel_name=None,
-            ota_price_usd=None,
-            platform=None,
-            confidence=0.0,
-            match_method="no_results",
-            price_delta_pct=None,
-            matched_url=None,
-        )
+        logger.warning(f"[Audit] No OTA results found for '{component_name}'. Proceeding to UK Fallback URL Discovery.")
+        matched_name = None
+        confidence = 0.0
+    else:
+        # --- Step 2: AI Matching ---
+        ota_names = [r.name for r in all_ota_results]
+        match_result = matcher.match_hotels(component_name, ota_names)
 
-    # --- Step 2: AI Matching ---
-    ota_names = [r.name for r in all_ota_results]
-    match_result = matcher.match_hotels(component_name, ota_names)
-
-    matched_name = match_result.get("matched_hotel")
-    confidence = float(match_result.get("confidence", 0))
+        matched_name = match_result.get("matched_hotel")
+        confidence = float(match_result.get("confidence", 0))
 
     if not matched_name:
-        logger.warning(f"[Audit] No AI match found for '{component_name}' against OTA results.")
+        if all_ota_results:
+            logger.warning(f"[Audit] No AI match found for '{component_name}' against OTA results. Proceeding to UK Fallback URL Discovery.")
+        
+        # --- Fallback: UK URL Discovery ---
+        # If the property is completely missing in the target locale (e.g. Japan), search via UK to extract the direct URL
+        # We use a date 6 months in the future to guarantee the hotel is not sold out and appears in search results.
+        future_checkin = date.today() + timedelta(days=180)
+        fallback_scraper = BookingComScraper(
+            locale="en-GB", nights=nights, checkin_date=future_checkin,
+            target_currency="GBP", adults=adults, children=children, rooms=rooms
+        )
+        try:
+            logger.info(f"[Audit] Initiating UK Fallback URL Discovery for '{component_name}'...")
+            fallback_results = await asyncio.wait_for(
+                fallback_scraper.scrape(component_name, max_results=10),
+                timeout=45.0
+            )
+            if fallback_results:
+                fallback_match = matcher.match_hotels(component_name, [r.name for r in fallback_results])
+                fb_matched_name = fallback_match.get("matched_hotel")
+                if fb_matched_name:
+                    fb_ota = next((r for r in fallback_results if r.name == fb_matched_name), None)
+                    if fb_ota and fb_ota.url:
+                        logger.info(f"[Audit] Fallback URL Discovery SUCCESS! Found URL: {fb_ota.url}")
+                        # Use the ORIGINAL TARGET MARKET SCRAPER to hit the detail page directly!
+                        try:
+                            # Strip query parameters so the target scraper uses its own checkin_date, not the 6-month future date!
+                            clean_fallback_url = fb_ota.url.split("?")[0]
+                            logger.info(f"[Audit] Scraping detail page directly using target market proxy: {clean_fallback_url}")
+                            detail_price = await booking_scraper.scrape_detail_page(clean_fallback_url)
+                            if detail_price is not None:
+                                # We successfully bypassed the search ranking issue!
+                                ota_price_usd = detail_price
+                                
+                                # Compute the local currency price backwards from the USD detail price
+                                rate_target = float(exchange_rates.get(target_currency, 1.0))
+                                ota_price_local = round(detail_price * rate_target, 2)
+                                
+                                price_delta_pct = None
+                                if ota_price_usd and dmc_price_usd > 0:
+                                    raw_delta = round(((dmc_price_usd - ota_price_usd) / ota_price_usd) * 100, 2)
+                                    price_delta_pct = _clamp_delta(raw_delta)
+                                
+                                logger.info(f"[Audit] Fallback Detail page scrape success: ${ota_price_usd}")
+                                return ComponentAuditResult(
+                                    component_id=component.id,
+                                    component_name=component_name,
+                                    dmc_price_usd=dmc_price_usd,
+                                    matched_hotel_name=fb_matched_name,
+                                    ota_price_usd=ota_price_usd,
+                                    platform="Booking.com",
+                                    confidence=float(fallback_match.get("confidence", 0)),
+                                    match_method="llm_verified",
+                                    price_delta_pct=price_delta_pct,
+                                    matched_url=fb_ota.url,
+                                    ota_price_local=ota_price_local,
+                                    ota_currency=target_currency,
+                                )
+                        except Exception as e:
+                            logger.warning(f"[Audit] Failed to scrape fallback detail page for '{fb_matched_name}': {e}")
+        except Exception as e:
+            logger.warning(f"[Audit] Fallback URL Discovery failed: {e}")
+
+        # If fallback also failed, return empty
         return ComponentAuditResult(
             component_id=component.id,
             component_name=component_name,
@@ -211,9 +279,11 @@ async def _scrape_and_match_component(
             ota_price_usd=None,
             platform=None,
             confidence=confidence,
-            match_method="llm_verified",
+            match_method="llm_verified" if matched_name else "no_results",
             price_delta_pct=None,
             matched_url=None,
+            ota_price_local=None,
+            ota_currency=None,
         )
 
     # --- Step 3: Find the price for the matched hotel ---
@@ -222,7 +292,17 @@ async def _scrape_and_match_component(
         None
     )
 
-    ota_price_usd = matched_ota.total_price if matched_ota else None
+    ota_price_local = matched_ota.total_price if matched_ota else None
+    
+    # Convert native scraped currency to USD for internal comparison
+    if ota_price_local is not None:
+        rate_target = float(exchange_rates.get(target_currency, 1.0))
+        # Note: ER-API base is USD. So 1 USD = rate_target (e.g. 150 JPY, 0.85 EUR).
+        # To convert JPY to USD, we divide by the rate: JPY / rate_target.
+        ota_price_usd = round(float(ota_price_local) / rate_target, 2)
+    else:
+        ota_price_usd = None
+        
     platform = matched_ota.platform if matched_ota else None
     matched_url = getattr(matched_ota, "url", None) if matched_ota else None
 
@@ -232,20 +312,25 @@ async def _scrape_and_match_component(
         try:
             detail_price = await booking_scraper.scrape_detail_page(matched_url)
             if detail_price is not None:
-                ota_price_usd = detail_price
+                # detail_price is in target_currency, so we must convert to USD
+                rate_target = float(exchange_rates.get(target_currency, 1.0))
+                converted_usd = round(float(detail_price) / rate_target, 2)
+                ota_price_usd = converted_usd
+                ota_price_local = detail_price
                 if matched_ota:
                     matched_ota.total_price = detail_price
                     matched_ota.price_per_night = round(detail_price / nights, 2)
-                logger.info(f"[Audit] Detail page scrape success: ${ota_price_usd}")
+                logger.info(f"[Audit] Detail page scrape success: {detail_price} {target_currency} -> ${ota_price_usd} USD")
         except Exception as e:
             logger.warning(f"[Audit] Failed to scrape detail page for '{matched_name}': {e}")
 
     # --- Step 4: Calculate price delta ---
     price_delta_pct = None
     if ota_price_usd and dmc_price_usd > 0:
-        price_delta_pct = round(
+        raw_delta = round(
             ((dmc_price_usd - ota_price_usd) / ota_price_usd) * 100, 2
         )
+        price_delta_pct = _clamp_delta(raw_delta)
 
     logger.info(
         f"[Audit] '{component_name}' → matched '{matched_name}' on {platform} "
@@ -264,13 +349,15 @@ async def _scrape_and_match_component(
         match_method="llm_verified",
         price_delta_pct=price_delta_pct,
         matched_url=matched_url,
+        ota_price_local=ota_price_local,
+        ota_currency=target_currency if ota_price_local else None,
     )
 
 
 async def run_audit(
     package_id: int,
     source_market: str = "DE",
-    locale: str = "de-DE",
+    locale: Optional[str] = None,
     job_id: Optional[str] = None,
 ) -> AuditSummary:
     """
@@ -285,9 +372,21 @@ async def run_audit(
     Returns:
         AuditSummary with all component results and overall delta.
     """
-    logger.info(f"[Audit] ▶ Starting audit — package_id={package_id}, market={source_market}, job_id={job_id}")
+    if locale is None:
+        market_locale_map = {
+            "DE": "de-DE",
+            "GB": "en-GB",
+            "AU": "en-AU",
+            "FR": "fr-FR",
+            "US": "en-US",
+            "JP": "ja-JP"
+        }
+        locale = market_locale_map.get(source_market.upper(), "en-US")
 
-    exchange_rate = await get_lkr_to_usd_rate()
+    logger.info(f"[Audit] ▶ Starting audit — package_id={package_id}, market={source_market}, locale={locale}, job_id={job_id}")
+
+    exchange_rates = await get_exchange_rates()
+    exchange_rate_lkr = float(exchange_rates.get("LKR", 305.00))
     job_uuid = uuid.UUID(job_id) if job_id else None
     
     try:
@@ -316,16 +415,23 @@ async def run_audit(
                 )
                 job = job_result.scalar_one_or_none()
                 if job:
-                    job.status = "scraping"
-                    job.total_tasks = len(package.components)
-                    job.completed_tasks = 0
-                    await db.commit()
+                    if job.status != "scraping":
+                        job.status = "scraping"
+                        await db.commit()
 
-            from datetime import timedelta
-            # Calculate dynamic check-in date: Wednesday approximately 30 days in the future
-            base_date = date.today() + timedelta(days=30)
-            days_to_add = (2 - base_date.weekday()) % 7
-            checkin_date = base_date + timedelta(days=days_to_add)
+            # Calculate dynamic check-in date or use target_date
+            if getattr(package, "target_date", None):
+                base_date = package.target_date.date()
+                checkin_date = base_date
+            else:
+                base_date = date.today() + timedelta(days=30)
+                days_to_add = (2 - base_date.weekday()) % 7
+                checkin_date = base_date + timedelta(days=days_to_add)
+
+            # Get occupancy from package (fallback to defaults if not set for older records)
+            adults = getattr(package, "adults", 2) or 2
+            children = getattr(package, "children", 0) or 0
+            rooms = getattr(package, "rooms", 1) or 1
 
             matcher = ItineraryMatcher()
             component_results: list[ComponentAuditResult] = []
@@ -334,7 +440,7 @@ async def run_audit(
             best_matched_count = -1
             best_checkin_date = checkin_date
 
-            max_attempts = 3
+            max_attempts = 1
             attempt = 1
 
             while attempt <= max_attempts:
@@ -351,28 +457,41 @@ async def run_audit(
                         except (ValueError, IndexError):
                             nights = 1
 
+                    if job:
+                        job_result = await db.execute(
+                            select(AnalysisJob).where(AnalysisJob.id == job_uuid)
+                        )
+                        job = job_result.scalar_one_or_none()
+                        if job:
+                            job.current_detail = f"Scraping '{component.name}' via {source_market} proxies..."
+                            await db.commit()
+
                     result = await _scrape_and_match_component(
                         component=component,
                         source_market=source_market,
                         locale=locale,
                         nights=nights,
                         matcher=matcher,
-                        exchange_rate=exchange_rate,
+                        exchange_rates=exchange_rates,
                         checkin_date=checkin_date,
+                        adults=adults,
+                        children=children,
+                        rooms=rooms,
                     )
                     component_results.append(result)
 
                     if job:
                         # Refresh job session reference
-                        job_result = await db.execute(
-                            select(AnalysisJob).where(AnalysisJob.id == job_uuid)
-                        )
-                        job = job_result.scalar_one_or_none()
-                        if job:
-                            job.completed_tasks = idx + 1
-                            if idx + 1 == len(package.components) and (attempt == max_attempts or not any(r.ota_price_usd is None for r in component_results)):
-                                job.status = "matching"
+                        from sqlalchemy import update
+                        try:
+                            await db.execute(
+                                update(AnalysisJob)
+                                .where(AnalysisJob.id == job_uuid)
+                                .values(completed_tasks=AnalysisJob.completed_tasks + 1)
+                            )
                             await db.commit()
+                        except Exception as e:
+                            logger.error(f"[Audit] Failed to update progress: {e}")
 
                 # Calculate successfully matched hotel components count
                 matched_count = sum(
@@ -422,7 +541,7 @@ async def run_audit(
             for result in component_results:
                 if result.matched_hotel_name and result.confidence > 70:
                     # Resolve source_market_id & platform_id
-                    market_id_map = {"DE": 1, "GB": 2, "AU": 3}
+                    market_id_map = {"DE": 1, "GB": 2, "AU": 3, "FR": 4, "US": 5, "JP": 6}
                     src_mkt_id = market_id_map.get(source_market.upper(), 1)
                     
                     platform_id_map = {"Booking.com": 1, "Agoda": 2}
@@ -435,8 +554,8 @@ async def run_audit(
                         source_market_id=src_mkt_id,
                         component_type=comp_type,
                         raw_name=result.matched_hotel_name,
-                        price=result.ota_price_usd,
-                        currency="USD",
+                        price=result.ota_price_local if result.ota_price_local else result.ota_price_usd,
+                        currency=result.ota_currency if result.ota_currency else "USD",
                         price_usd=result.ota_price_usd if result.ota_price_usd else None,
                         url=result.matched_url,
                     )
@@ -459,9 +578,10 @@ async def run_audit(
             market_total_usd = sum(r.ota_price_usd for r in matched_results if r.ota_price_usd)
 
             if dmc_total_usd > 0 and market_total_usd > 0:
-                overall_delta_pct = round(
+                raw_delta = round(
                     ((dmc_total_usd - market_total_usd) / market_total_usd) * 100, 2
                 )
+                overall_delta_pct = _clamp_delta(raw_delta)
                 status = _determine_status(overall_delta_pct)
                 market_assembled_price_usd = market_total_usd
             else:
@@ -470,7 +590,7 @@ async def run_audit(
                 market_assembled_price_usd = None
 
             # Map source_market string code to ID
-            market_id_map = {"DE": 1, "GB": 2, "AU": 3}
+            market_id_map = {"DE": 1, "GB": 2, "AU": 3, "FR": 4, "US": 5, "JP": 6}
             src_mkt_id = market_id_map.get(source_market.upper(), 1)
 
             # --- Save CompetitivenessReport ---
@@ -487,14 +607,7 @@ async def run_audit(
             # --- Update DMCPackage status ---
             package.status = status
 
-            if job:
-                job_result = await db.execute(
-                    select(AnalysisJob).where(AnalysisJob.id == job_uuid)
-                )
-                job = job_result.scalar_one_or_none()
-                if job:
-                    job.status = "done"
-                    job.completed_at = datetime.utcnow()
+            # In parallel mode, job completion status is handled by the orchestrator in jobs.py
 
             await db.commit()
 

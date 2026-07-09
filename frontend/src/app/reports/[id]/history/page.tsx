@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import PageWrapper from "@/components/layout/PageWrapper";
 import { fetchDashboardPackage } from "@/app/dashboard/actions";
-import { 
-  ArrowLeft, 
-  Download, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  Download,
+  CheckCircle,
   AlertTriangle,
   Hotel,
   Navigation,
@@ -25,6 +25,7 @@ export default function ReportHistoryPage() {
 
   const [packageData, setPackageData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -42,32 +43,42 @@ export default function ReportHistoryPage() {
 
   const [markupApplied, setMarkupApplied] = useState(false);
 
-  const EXCHANGE_RATE = 305.00;
-  const baseLkr = packageData?.total_price_lkr || 1850000;
+  const EXCHANGE_RATE = (packageData?.reports?.[0]?.dmc_price_usd && packageData?.total_price_lkr)
+    ? (packageData.total_price_lkr / packageData.reports[0].dmc_price_usd)
+    : 335.00;
+  const baseLkr = packageData?.total_price_lkr || 0;
   const baseUsd = baseLkr / EXCHANGE_RATE;
 
   const matchedComponents = (packageData?.components || []).map((comp: any) => {
-    // Find the latest match
-    const match = comp.matches && comp.matches.length > 0 ? comp.matches[0] : null;
+    // Find the latest match by sorting matches by ID descending
+    const sortedMatches = comp.matches && comp.matches.length > 0 
+      ? [...comp.matches].sort((a: any, b: any) => b.id - a.id) 
+      : [];
+    const match = sortedMatches.length > 0 ? sortedMatches[0] : null;
     const yourCostUsd = comp.base_price_lkr / EXCHANGE_RATE;
-    
+
     if (match && match.listing) {
-      const scrapedCostUsd = match.listing.price;
+      const scrapedCostUsd = match.listing.price_usd || match.listing.price;
+      const scrapedCostLocal = match.listing.price;
+      const scrapedCurrency = match.listing.currency || "USD";
       const isUnavailable = scrapedCostUsd === null || scrapedCostUsd === undefined || scrapedCostUsd === 0;
       const delta = !isUnavailable && scrapedCostUsd > 0 ? Math.round(((yourCostUsd - scrapedCostUsd) / scrapedCostUsd) * 1000) / 10 : null;
-      
+
       const platformMap: Record<number, string> = { 1: "Booking.com", 2: "Agoda" };
       const scrapedPlatform = platformMap[match.listing.platform_id] || "Booking.com";
-      
+
       return {
         id: comp.id,
         type: comp.component_type || "hotel",
         name: comp.name,
         details: comp.nights_or_duration ? `${comp.nights_or_duration}` : "1 Night",
         yourCostUsd: Math.round(yourCostUsd),
+        yourCostLkr: Math.round(comp.base_price_lkr),
         scrapedName: match.listing.raw_name,
         scrapedPlatform: scrapedPlatform,
         scrapedCostUsd: isUnavailable ? null : Math.round(scrapedCostUsd),
+        scrapedCostLocal: isUnavailable ? null : Math.round(scrapedCostLocal),
+        scrapedCurrency: scrapedCurrency,
         delta: delta,
         confidence: match.confidence,
         method: match.match_method === 'llm_verified' ? 'LLM Verified' : match.match_method === 'embedding' ? 'Cosine Similarity' : 'Rule Matched',
@@ -80,9 +91,12 @@ export default function ReportHistoryPage() {
         name: comp.name,
         details: comp.nights_or_duration ? `${comp.nights_or_duration}` : "1 Night",
         yourCostUsd: Math.round(yourCostUsd),
+        yourCostLkr: Math.round(comp.base_price_lkr),
         scrapedName: "No Match Found",
         scrapedPlatform: "N/A",
         scrapedCostUsd: null,
+        scrapedCostLocal: null,
+        scrapedCurrency: null,
         delta: null,
         confidence: 0,
         method: "None",
@@ -93,15 +107,21 @@ export default function ReportHistoryPage() {
 
   const reportsList = (packageData?.reports || [])
     .map((rep: any) => {
-      const marketNames: Record<number, { name: string; flag: string }> = {
-        1: { name: "Germany (DE)", flag: "🇩🇪" },
-        2: { name: "United Kingdom (GB)", flag: "🇬🇧" },
-        3: { name: "Australia (AU)", flag: "🇦🇺" }
+      const marketNames: Record<number, { name: string; flag: string; curr: string }> = {
+        1: { name: "Germany (DE)", flag: "🇩🇪", curr: "EUR" },
+        2: { name: "United Kingdom (GB)", flag: "🇬🇧", curr: "GBP" },
+        3: { name: "Australia (AU)", flag: "🇦🇺", curr: "AUD" },
+        4: { name: "France (FR)", flag: "🇫🇷", curr: "EUR" },
+        5: { name: "United States (US)", flag: "🇺🇸", curr: "USD" },
+        6: { name: "Japan (JP)", flag: "🇯🇵", curr: "JPY" }
       };
-      const marketInfo = marketNames[rep.source_market_id] || { name: "Germany (DE)", flag: "🇩🇪" };
-      const dmcRate = `$${Math.round(rep.dmc_price_usd / 1.08).toLocaleString()}`;
+      const marketInfo = marketNames[rep.source_market_id] || { name: "Germany (DE)", flag: "🇩🇪", curr: "EUR" };
+      const dmcRateUsd = rep.dmc_price_usd;
+      const dmcRateLkr = dmcRateUsd * EXCHANGE_RATE;
+      const dmcRate = `$${Math.round(dmcRateUsd).toLocaleString()} (LKR ${Math.round(dmcRateLkr).toLocaleString()})`;
+      
       const marketPrice = rep.market_assembled_price_usd !== null && rep.market_assembled_price_usd !== undefined
-        ? `$${Math.round(rep.market_assembled_price_usd / 1.08).toLocaleString()}`
+        ? `$${Math.round(rep.market_assembled_price_usd).toLocaleString()} (${marketInfo.curr})`
         : "N/A";
       const variance = rep.price_delta_pct !== null && rep.price_delta_pct !== undefined
         ? `${rep.price_delta_pct > 0 ? "+" : ""}${rep.price_delta_pct}%`
@@ -119,9 +139,6 @@ export default function ReportHistoryPage() {
     })
     .sort((a: any, b: any) => new Date(b.raw_report.generated_at).getTime() - new Date(a.raw_report.generated_at).getTime());
 
-  const latestReport = reportsList[0];
-  const lastAuditedStr = latestReport ? latestReport.date : "Never";
-
   const totalDmcUsd = matchedComponents.reduce((acc: number, c: any) => acc + c.yourCostUsd, 0);
   const availableScrapedComponents = matchedComponents.filter((c: any) => !c.isUnavailable);
   const totalScrapedUsd = availableScrapedComponents.reduce((acc: number, c: any) => acc + (c.scrapedCostUsd || 0), 0);
@@ -129,13 +146,23 @@ export default function ReportHistoryPage() {
   const totalDeltaPct = totalScrapedUsd > 0 ? Math.round(((totalDmcUsdForAvailable - totalScrapedUsd) / totalScrapedUsd) * 1000) / 10 : 0;
   const hasUnavailableComponents = matchedComponents.some((c: any) => c.isUnavailable);
 
+  const latestReport = selectedReportId
+    ? reportsList.find((r: any) => r.raw_report.id === selectedReportId) || reportsList[0]
+    : reportsList[0];
+  const lastAuditedStr = latestReport ? latestReport.date : "Never";
+
+  // Use the selected report's snapshot data for the top dashboard metrics
+  const displayTotalDmcUsd = latestReport?.raw_report?.dmc_price_usd ?? totalDmcUsd;
+  const displayTotalScrapedUsd = latestReport?.raw_report?.market_assembled_price_usd ?? totalScrapedUsd;
+  const displayTotalDeltaPct = latestReport?.raw_report?.price_delta_pct ?? totalDeltaPct;
+
   if (isLoading) {
     return (
       <PageWrapper>
         <div className="flex h-64 items-center justify-center">
           <div className="flex items-center gap-2 text-sky-500 animate-pulse">
-             <BrainCircuit size={24} className="animate-spin" />
-             <span className="font-bold text-sm">Compiling Report...</span>
+            <BrainCircuit size={24} className="animate-spin" />
+            <span className="font-bold text-sm">Compiling Report...</span>
           </div>
         </div>
       </PageWrapper>
@@ -146,8 +173,8 @@ export default function ReportHistoryPage() {
     <PageWrapper>
       {/* Header Back & Action Buttons */}
       <div className="flex items-center justify-between border-b border-zinc-900 pb-6">
-        <Link 
-          href="/dashboard" 
+        <Link
+          href="/dashboard"
           className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors"
         >
           <ArrowLeft size={16} />
@@ -155,7 +182,7 @@ export default function ReportHistoryPage() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => alert("PDF report generation complete. Downloading report...")}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-2 rounded-xl transition-all animate-none"
           >
@@ -176,201 +203,128 @@ export default function ReportHistoryPage() {
         </div>
       </div>
 
-      {/* Main Alert Card: Optimization recommendations reframed (Issue #1) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-6">
-        
-        {/* Left Section: Match Breakdown */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          
-          {/* Card: Pricing Gap & Margin Simulation */}
-          <div className="p-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 backdrop-blur-md flex flex-col gap-4">
-            <div className="flex items-start gap-4">
-              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                <BrainCircuit size={20} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-white">AI Pricing Gap & Margin Analysis</h3>
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  {hasUnavailableComponents ? (
-                    <span>Your DMC package competitiveness is calculated partially. Some components are currently sold out or have no public competitor rate on OTAs.</span>
-                  ) : (
-                    <span>Your DMC package is currently priced at a <strong className="text-blue-400">{Math.abs(totalDeltaPct)}% gap</strong> under the lowest public price on Booking.com and Agoda in Germany. This analysis identifies margins that can be adjusted manually while remaining below public retail aggregates.</span>
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <span className="h-px bg-zinc-800" />
-
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex gap-8">
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-300 uppercase font-semibold">Your Price</span>
-                  <span className="text-sm font-black text-white">${totalDmcUsd.toLocaleString()}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-300 uppercase font-semibold">Market Sum-of-Parts</span>
-                  <span className="text-sm font-black text-white">
-                    ${totalScrapedUsd.toLocaleString()}{hasUnavailableComponents ? "*" : ""}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-300 uppercase font-semibold">Pricing Gap Opportunity</span>
-                  <span className="text-sm font-black text-emerald-400">
-                    {hasUnavailableComponents ? "N/A (Partial Audit)" : `+$${Math.round((totalScrapedUsd * 0.9 - totalDmcUsd))} (at 10% discount)`}
-                  </span>
-                </div>
-              </div>
-
-              {!markupApplied ? (
-                <button 
-                  onClick={() => setMarkupApplied(true)}
-                  className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-sky-400 text-xs font-bold text-black transition-all cursor-pointer"
-                >
-                  Simulate Target Price Adjustment
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl">
-                  <CheckCircle size={14} /> Target Price Simulated
-                </span>
-              )}
-            </div>
-            {hasUnavailableComponents && (
-              <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-center gap-2 mt-2">
-                <AlertTriangle size={12} className="shrink-0" />
-                <span>* Some components are currently Sold Out or unavailable on OTAs. The Market Sum-of-Parts and competitiveness delta calculations exclude these components.</span>
-              </div>
-            )}
+      {/* Top Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        {/* Source Market Card */}
+        <div className="p-5 rounded-2xl border border-zinc-900 bg-zinc-950/40 flex flex-col justify-center">
+          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Source Market</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-black text-white">{latestReport ? latestReport.market : 'N/A'}</span>
           </div>
-
-          {/* Component-level Breakdown */}
-          <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
-            <div>
-              <h3 className="text-sm font-bold text-white">Component Price Breakdown</h3>
-              <p className="text-xs text-gray-300 mt-0.5">Scraped OTA match equivalence details</p>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              {matchedComponents.map((comp: any) => (
-                <div key={comp.id} className="p-4 rounded-xl border border-zinc-900 bg-zinc-900/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  
-                  {/* DMC component */}
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border bg-zinc-950/40 border-zinc-800 ${
-                      comp.type === "hotel" 
-                        ? "text-sky-400" 
-                        : comp.type === "excursion" 
-                        ? "text-emerald-400" 
-                        : "text-purple-400"
-                    }`}>
-                      {comp.type === "hotel" ? <Hotel size={16} /> : comp.type === "excursion" ? <Compass size={16} /> : <Navigation size={16} />}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-white">{comp.name}</span>
-                      <span className="text-[10px] text-gray-300 mt-0.5">{comp.details}</span>
-                      <span className="text-xs text-sky-400 font-semibold mt-1">${comp.yourCostUsd.toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  {/* Match Arrow Icon */}
-                  <div className="hidden md:block text-gray-400">
-                    <ArrowRight size={16} />
-                  </div>
-
-                  {/* Scraped OTA component */}
-                  <div className="flex-1 flex flex-col">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-zinc-300 px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">
-                        {comp.scrapedPlatform}
-                      </span>
-                      <span className="text-xs text-gray-300 font-medium truncate max-w-[200px]" title={comp.scrapedName}>
-                        {comp.scrapedName}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-gray-300 mt-0.5">
-                      Confidence: <strong className="text-emerald-400">{comp.confidence}%</strong> ({comp.method})
-                    </span>
-                    <span className="text-xs text-amber-500 font-semibold mt-1">
-                      {comp.isUnavailable ? (
-                        <span className="text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] uppercase">
-                          Sold Out / N/A
-                        </span>
-                      ) : (
-                        `$${comp.scrapedCostUsd.toLocaleString()}`
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Price comparison result */}
-                  <div className="text-right flex flex-col items-start md:items-end justify-center min-w-[80px]">
-                    <span className={`text-xs font-bold ${comp.isUnavailable ? "text-gray-400" : "text-emerald-400"}`}>
-                      {comp.isUnavailable ? "—" : `${comp.delta > 0 ? "+" : ""}${comp.delta}%`}
-                    </span>
-                    <span className="text-[10px] text-gray-300">vs OTA price</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <span className="text-[10px] text-gray-500 mt-2 truncate" title={lastAuditedStr}>{lastAuditedStr}</span>
         </div>
 
-        {/* Right Section: Overview Panel */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          
-          {/* Card: Info & Market details */}
-          <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-white">Market Audit Snapshot</h3>
-            
-            <div className="flex flex-col gap-3 text-xs text-gray-400">
-              <div className="flex justify-between">
-                <span>DMC Price (USD equivalent)</span>
-                <span className="text-white font-bold">${(totalDmcUsd * 1.08).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+        {/* DMC Price Card */}
+        <div className="p-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 flex flex-col justify-center">
+          <span className="text-[10px] text-blue-400 uppercase font-bold tracking-wider mb-1">Your Price</span>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-black text-white">${Math.round(displayTotalDmcUsd).toLocaleString()}</span>
+          </div>
+          <span className="text-[10px] text-gray-500 mt-2">DMC Base Price</span>
+        </div>
+
+        {/* OTA Sum of Parts Card */}
+        <div className="p-5 rounded-2xl border border-zinc-900 bg-zinc-950/40 flex flex-col justify-center">
+          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">OTA Sum-of-Parts</span>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-black text-white">${Math.round(displayTotalScrapedUsd).toLocaleString()}</span>
+          </div>
+          <span className="text-[10px] text-gray-500 mt-2">Lowest public retail equivalent</span>
+        </div>
+
+        {/* Pricing Gap Card */}
+        <div className="p-5 rounded-2xl border border-zinc-900 bg-zinc-950/40 flex flex-col justify-center">
+          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Pricing Gap</span>
+          <div className="flex items-center gap-2">
+            <span className={`text-2xl font-black ${displayTotalDeltaPct > 0 ? "text-yellow-400" : "text-emerald-400"}`}>
+              {displayTotalDeltaPct > 0 ? "+" : ""}{displayTotalDeltaPct}%
+            </span>
+          </div>
+          <span className="text-[10px] text-gray-500 mt-2">
+            {displayTotalDeltaPct > 0 ? "Premium over OTA market" : "Margin gap under OTA"}
+          </span>
+        </div>
+      </div>
+
+      {hasUnavailableComponents && (
+        <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-center gap-2 mt-4">
+          <AlertTriangle size={14} className="shrink-0" />
+          <span>Some components are currently Sold Out or unavailable on OTAs. The Market Sum-of-Parts and pricing gap calculations exclude these components.</span>
+        </div>
+      )}
+
+      {/* Component-level Breakdown */}
+      <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6 mt-6">
+        <div>
+          <h3 className="text-sm font-bold text-white">Component Price Breakdown</h3>
+          <p className="text-xs text-gray-300 mt-0.5">Scraped OTA match equivalence details</p>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {matchedComponents.map((comp: any) => (
+            <div key={comp.id} className="p-4 rounded-xl border border-zinc-900 bg-zinc-900/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+
+              {/* DMC component */}
+              <div className="flex items-start gap-4 flex-1">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border bg-zinc-950/40 border-zinc-800 ${comp.type === "hotel"
+                    ? "text-sky-400"
+                    : comp.type === "excursion"
+                      ? "text-emerald-400"
+                      : "text-purple-400"
+                  }`}>
+                  {comp.type === "hotel" ? <Hotel size={16} /> : comp.type === "excursion" ? <Compass size={16} /> : <Navigation size={16} />}
+                </div>
+
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-white">{comp.name}</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-sky-400 font-semibold">${comp.yourCostUsd.toLocaleString()}</span>
+                    <span className="text-[10px] text-gray-500 font-medium">LKR {comp.yourCostLkr?.toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span>Market Price (USD equivalent)</span>
-                <span className="text-white font-bold">${(totalScrapedUsd * 1.08).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+
+              {/* Match Arrow Icon */}
+              <div className="hidden md:block text-gray-400">
+                <ArrowRight size={16} />
               </div>
-              <div className="flex justify-between">
-                <span>Source Market</span>
-                <span className="text-white font-bold flex items-center gap-1">🇩🇪 Germany</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Last Audited</span>
-                <span className="text-white font-bold">{lastAuditedStr}</span>
-              </div>
-              <span className="h-px bg-zinc-800" />
-              <div className="flex justify-between text-sm">
-                <span className="text-white font-bold">Overall Competitiveness</span>
-                <span className={`font-black ${
-                  latestReport?.status === "competitive" 
-                    ? "text-emerald-400" 
-                    : latestReport?.status === "at_risk" 
-                    ? "text-yellow-400" 
-                    : latestReport?.status === "partial"
-                    ? "text-amber-400"
-                    : "text-blue-400"
-                }`}>
-                  {latestReport 
-                    ? latestReport.status === "partial" || latestReport.variance === "N/A"
-                      ? "Partial Audit (N/A)"
-                      : `${latestReport.status === "competitive" ? "Competitive" : latestReport.status === "at_risk" ? "At Risk" : "Leakage"} (${latestReport.variance})` 
-                    : "Pending Audit"}
+
+              {/* Scraped OTA component */}
+              <div className="flex-1 flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-zinc-300 px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800">
+                    {comp.scrapedPlatform}
+                  </span>
+                  <span className="text-xs text-gray-300 font-medium truncate max-w-[200px]" title={comp.scrapedName}>
+                    {comp.scrapedName}
+                  </span>
+                </div>
+                <span className="text-[10px] text-gray-300 mt-0.5">
+                  Confidence: <strong className="text-emerald-400">{comp.confidence}%</strong> ({comp.method})
                 </span>
+                <div className="mt-1">
+                  {comp.isUnavailable ? (
+                    <span className="text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] uppercase">
+                      Sold Out / N/A
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-amber-500 font-semibold">
+                      <span>${comp.scrapedCostUsd.toLocaleString()}</span>
+                      <span className="text-[10px] text-gray-500 font-medium">{comp.scrapedCurrency} {comp.scrapedCostLocal?.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Price comparison result */}
+              <div className="text-right flex flex-col items-start md:items-end justify-center min-w-[80px]">
+                <span className={`text-xs font-bold ${comp.isUnavailable ? "text-gray-400" : "text-emerald-400"}`}>
+                  {comp.isUnavailable ? "—" : `${comp.delta > 0 ? "+" : ""}${comp.delta}%`}
+                </span>
+                <span className="text-[10px] text-gray-300">vs OTA price</span>
               </div>
             </div>
-          </div>
-
-          {/* Quick Info Box */}
-          <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-3">
-            <h4 className="text-xs font-bold text-white flex items-center gap-2">
-              <AlertTriangle size={14} className="text-amber-500" />
-              Why this matching is reliable
-            </h4>
-            <p className="text-[10px] text-gray-300 leading-relaxed">
-              We leverage Torch Labs residential proxies to bypass OTA geofencing and anti-bot systems, ensuring the German market rates are identical to what travelers see from their browsers in Frankfurt.
-            </p>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -385,43 +339,48 @@ export default function ReportHistoryPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-zinc-900 text-gray-400 text-[10px] font-bold uppercase tracking-wider">
-                <th className="pb-3">Audit Date / Time</th>
+                <th className="pb-3 pl-3">Audit Date / Time</th>
                 <th className="pb-3">Target Market</th>
                 <th className="pb-3">DMC Rate</th>
                 <th className="pb-3">Market Price</th>
-                <th className="pb-3">Variance</th>
-                <th className="pb-3 text-right">Actions</th>
+                <th className="pb-3 pr-3 text-right">Variance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900 text-xs text-gray-300">
               {reportsList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-400">No audits have been executed yet for this package.</td>
+                  <td colSpan={5} className="py-8 text-center text-gray-400">No audits have been executed yet for this package.</td>
                 </tr>
               ) : (
-                reportsList.map((run: any, idx: number) => (
-                  <tr key={idx} className="hover:bg-zinc-900/10 transition-colors">
-                    <td className="py-3.5 font-medium text-white">{run.date}</td>
-                    <td className="py-3.5">{run.market}</td>
-                    <td className="py-3.5">{run.dmc}</td>
-                    <td className="py-3.5 font-semibold text-white">{run.marketPrice}</td>
-                    <td className="py-3.5">
-                      <span className={`font-bold ${
-                        run.status === "underpriced" || run.status === "margin_leakage" ? "text-blue-400" : run.status === "at_risk" ? "text-yellow-400" : "text-emerald-400"
-                      }`}>
-                        {run.variance}
-                      </span>
-                    </td>
-                    <td className="py-3.5 text-right">
-                      <button 
-                        onClick={() => alert(`Showing selected audit snapshot from ${run.date} for comparison.`)}
-                        className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-[10px] font-bold text-gray-400 hover:text-white transition-colors cursor-pointer"
-                      >
-                        View Snapshot
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                reportsList.map((run: any, idx: number) => {
+                  const isSelected = selectedReportId === run.raw_report.id || (!selectedReportId && idx === 0);
+                  return (
+                    <tr 
+                      key={idx} 
+                      onClick={() => setSelectedReportId(run.raw_report.id)}
+                      className={`transition-colors cursor-pointer group ${
+                        isSelected 
+                          ? 'bg-blue-500/10 border-l-[3px] border-l-blue-500' 
+                          : 'hover:bg-zinc-900/50 border-l-[3px] border-l-transparent'
+                      }`}
+                    >
+                      <td className={`py-3.5 pl-3 font-medium ${isSelected ? 'text-blue-400' : 'text-white group-hover:text-sky-300'}`}>
+                        {run.date}
+                      </td>
+                      <td className="py-3.5">{run.market}</td>
+                      <td className="py-3.5">{run.dmc}</td>
+                      <td className={`py-3.5 font-semibold ${isSelected ? 'text-blue-400' : 'text-white'}`}>
+                        {run.marketPrice}
+                      </td>
+                      <td className="py-3.5 pr-3 text-right">
+                        <span className={`font-bold ${run.status === "underpriced" || run.status === "margin_leakage" ? "text-blue-400" : run.status === "at_risk" ? "text-yellow-400" : "text-emerald-400"
+                          }`}>
+                          {run.variance}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
