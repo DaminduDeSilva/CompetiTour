@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import PageWrapper from "@/components/layout/PageWrapper";
 import { fetchDashboardPackage } from "@/app/dashboard/actions";
 import {
@@ -41,7 +42,7 @@ export default function ReportHistoryPage() {
     loadData();
   }, [params.id]);
 
-  const [markupApplied, setMarkupApplied] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const EXCHANGE_RATE = (packageData?.reports?.[0]?.dmc_price_usd && packageData?.total_price_lkr)
     ? (packageData.total_price_lkr / packageData.reports[0].dmc_price_usd)
@@ -156,6 +157,69 @@ export default function ReportHistoryPage() {
   const displayTotalScrapedUsd = latestReport?.raw_report?.market_assembled_price_usd ?? totalScrapedUsd;
   const displayTotalDeltaPct = latestReport?.raw_report?.price_delta_pct ?? totalDeltaPct;
 
+  const exportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      const payload = {
+        package_name: packageData?.name || "Unknown Package",
+        report_data: {
+          market: latestReport?.market || "N/A",
+          date: lastAuditedStr,
+          dmc_usd: displayTotalDmcUsd,
+          market_usd: displayTotalScrapedUsd,
+          variance: displayTotalDeltaPct + "%",
+          status: latestReport?.status || "N/A"
+        },
+        components: matchedComponents.map((comp: any) => ({
+          name: comp.name,
+          platform: comp.scrapedPlatform,
+          is_unavailable: comp.isUnavailable,
+          market_usd: comp.scrapedCostUsd,
+          delta: comp.delta
+        }))
+      };
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+      const res = await fetch(`${API_URL}/packages/reports/pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      
+      const contentDisposition = res.headers.get("Content-Disposition");
+      let filename = `CompetiTour_Audit_${packageData?.name?.replace(/\W+/g, "_") || "Report"}.pdf`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match) filename = match[1];
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to export PDF. Please check console for details.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <PageWrapper>
@@ -183,11 +247,16 @@ export default function ReportHistoryPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => alert("PDF report generation complete. Downloading report...")}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 px-3 py-2 rounded-xl transition-all animate-none"
+            onClick={exportPDF}
+            disabled={isExporting}
+            className={`inline-flex items-center gap-1.5 text-xs font-bold ${isExporting ? "text-gray-500 cursor-not-allowed" : "text-gray-300 hover:text-white border-zinc-800 hover:border-zinc-700 bg-zinc-950/40"} border px-3 py-2 rounded-xl transition-all animate-none`}
           >
-            <Download size={14} />
-            <span>Export PDF</span>
+            {isExporting ? (
+              <span className="w-3 h-3 rounded-full border-2 border-gray-500 border-t-transparent animate-spin" />
+            ) : (
+              <Download size={14} />
+            )}
+            <span>{isExporting ? "Generating..." : "Export PDF"}</span>
           </button>
         </div>
       </div>

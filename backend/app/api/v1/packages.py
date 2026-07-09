@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Dict, Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -9,8 +10,15 @@ from app.models.component_match import ComponentMatch
 from app.schemas.package import PackageCreate, PackageUpdate, PackageResponse
 from app.api.deps import get_current_user
 from app.models.user import User
+from pydantic import BaseModel
+from app.services.pdf_report import generate_competitiveness_pdf
 
 router = APIRouter()
+
+class PDFReportRequest(BaseModel):
+    package_name: str
+    report_data: Dict[str, Any]
+    components: List[Dict[str, Any]]
 
 @router.post("/", response_model=PackageResponse)
 async def create_package(
@@ -205,4 +213,28 @@ async def delete_package(
     await db.delete(package)
     await db.commit()
     return {"status": "success", "message": f"Package {package_id} successfully deleted"}
+
+@router.post("/reports/pdf")
+async def export_pdf_report(
+    request: PDFReportRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Generates a PDF report based on the provided frontend snapshot data."""
+    pdf_bytes = generate_competitiveness_pdf(
+        package_name=request.package_name,
+        report_data=request.report_data,
+        components=request.components
+    )
+    
+    # Sanitize package name for filename
+    safe_name = "".join([c if c.isalnum() else "_" for c in request.package_name])
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="CompetiTour_Audit_{safe_name}.pdf"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
 
