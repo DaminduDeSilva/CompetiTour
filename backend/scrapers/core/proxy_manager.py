@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-def get_residential_proxy(country_code: str, sticky: bool = False) -> dict:
+def get_residential_proxy(country_code: str, sticky: bool = False, session_id: str = None) -> dict:
     """
     Build a Playwright-compatible proxy config for Torch Labs Residential.
 
@@ -35,6 +35,7 @@ def get_residential_proxy(country_code: str, sticky: bool = False) -> dict:
         country_code: ISO 3166-1 alpha-2 code (e.g., "DE", "GB", "AU")
         sticky: If True, attempts to maintain same IP. (Disabled/rotated by default
                 to ensure maximum reliability and avoid 503 service issues).
+        session_id: Optional string to append to password to force a specific IP session.
 
     Returns:
         Dict with 'server', 'username', 'password' keys for Playwright.
@@ -43,6 +44,14 @@ def get_residential_proxy(country_code: str, sticky: bool = False) -> dict:
     
     # Use working hyphenated format: password-country-de
     password = f"{password}-country-{country_code.lower()}"
+    
+    if sticky and not session_id:
+        import random
+        session_id = str(random.randint(10000000, 99999999))
+        
+    if session_id:
+        # Note the underscore '_' separator before session
+        password = f"{password}_session-{session_id}"
 
     proxy_config = {
         "server": f"http://{settings.TORCH_GATEWAY_HOST}:{settings.TORCH_GATEWAY_PORT}",
@@ -51,8 +60,9 @@ def get_residential_proxy(country_code: str, sticky: bool = False) -> dict:
     }
 
     logger.info(
-        "Residential proxy configured: country=%s, rotating",
+        "Residential proxy configured: country=%s, rotating | Auth string ending: %s",
         country_code,
+        password.split("-country-")[-1] if "-country-" in password else "None"
     )
     return proxy_config
 
@@ -80,7 +90,7 @@ def get_isp_proxy() -> dict:
     return proxy_config
 
 
-def get_proxy_for_task(country_code: str, task_type: str = "search") -> dict:
+def get_proxy_for_task(country_code: str, task_type: str = "search", session_id: str = None) -> dict:
     """
     Select the appropriate proxy based on the task type.
 
@@ -92,6 +102,7 @@ def get_proxy_for_task(country_code: str, task_type: str = "search") -> dict:
     Args:
         country_code: Target market country code.
         task_type: One of 'search', 'sweep', 'deep'.
+        session_id: Optional session string for proxy rotation.
 
     Returns:
         Playwright-compatible proxy dict.
@@ -101,7 +112,7 @@ def get_proxy_for_task(country_code: str, task_type: str = "search") -> dict:
         return get_isp_proxy()
     elif task_type == "sweep":
         logger.info("Using residential rotating proxy for sweep")
-        return get_residential_proxy(country_code, sticky=False)
+        return get_residential_proxy(country_code, sticky=False, session_id=session_id)
     else:
         # Default: sticky residential for geo-targeted search
-        return get_residential_proxy(country_code, sticky=True)
+        return get_residential_proxy(country_code, sticky=True, session_id=session_id)
