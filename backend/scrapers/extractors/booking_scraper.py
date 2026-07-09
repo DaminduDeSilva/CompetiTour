@@ -63,9 +63,10 @@ class BookingComScraper:
         "ja-JP": "ja-JP,ja;q=0.9,en;q=0.8",
     }
 
-    def __init__(self, locale: str = "de-DE", nights: int = 3, checkin_date: Optional[date] = None):
+    def __init__(self, locale: str = "de-DE", nights: int = 3, checkin_date: Optional[date] = None, target_currency: str = "USD"):
         self.locale = locale
         self.nights = nights
+        self.target_currency = target_currency
         if checkin_date:
             self.checkin = checkin_date
         else:
@@ -83,15 +84,18 @@ class BookingComScraper:
             "checkout": self.checkout.isoformat(),
             "group_adults": "2",
             "no_rooms": "1",
-            "selected_currency": "USD",
+            "selected_currency": self.target_currency,
             "lang": self.locale.replace("-", "_").lower(),
         }
         query_string = "&".join(f"{k}={v.replace(' ', '+')}" for k, v in params.items())
         return f"{self.BASE_URL}?{query_string}"
 
     def _parse_price(self, price_text: str) -> Optional[float]:
-        """Extracts a numeric float from a price string like '$2,100' or 'USD 2100'."""
-        cleaned = re.sub(r"[$$£¥₩,\s]", "", price_text)
+        """Extracts a numeric float from a price string like '$2,100', '€ 38', '¥ 35,750' or 'USD 2100'."""
+        # Replace non-breaking spaces with regular spaces
+        price_text = price_text.replace('\xa0', ' ')
+        # Strip all common currency symbols and commas/spaces (including fullwidth Yen)
+        cleaned = re.sub(r"[$$£¥￥₩€,\s]", "", price_text)
         # Remove currency codes
         cleaned = re.sub(r"[A-Z]{2,}", "", cleaned).strip()
         try:
@@ -110,7 +114,7 @@ class BookingComScraper:
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
             })
             logger.info(f"[Booking.com] Navigating via {proxy_type} proxy...")
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await page.goto(url, wait_until="domcontentloaded", timeout=15000)
             return page  # return page for further processing
 
     async def scrape(self, destination: str, max_results: int = 15) -> list["HotelResult"]:
@@ -132,27 +136,37 @@ class BookingComScraper:
         accept_language = self.LOCALE_HEADERS.get(self.locale, "en-US,en;q=0.9")
         country_code = self.locale.split("-")[1].upper() if "-" in self.locale else "DE"
 
-        # Try residential first, fall back to ISP if timeout
-        proxy_attempts = [("residential", country_code), ("isp", country_code)]
+        import uuid
+        session_1 = uuid.uuid4().hex[:8]
+        session_2 = uuid.uuid4().hex[:8]
+        session_3 = uuid.uuid4().hex[:8]
+        
+        # Try residential multiple times with rotating IPs, then fall back to ISP
+        proxy_attempts = [
+            ("residential", country_code, session_1),
+            ("residential", country_code, session_2),
+            ("residential", country_code, session_3),
+            ("isp", country_code, None)
+        ]
         page_ctx = None
         used_proxy = None
 
-        for proxy_type, cc in proxy_attempts:
+        for proxy_type, cc, session_id in proxy_attempts:
             try:
                 # Small random delay between retries
                 await asyncio.sleep(random.uniform(1.5, 4.0))
-                page_ctx = ScraperBrowser(proxy_type=proxy_type, country_code=cc)
+                page_ctx = ScraperBrowser(proxy_type=proxy_type, country_code=cc, session_id=session_id)
                 page = await page_ctx.__aenter__()
                 await page.set_extra_http_headers({
                     "Accept-Language": accept_language,
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 })
                 logger.info(f"[Booking.com] Navigating via {proxy_type} proxy...")
-                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                await page.goto(url, wait_until="commit", timeout=30000)
                 used_proxy = proxy_type
                 break
             except Exception as e:
-                logger.warning(f"[Booking.com] {proxy_type} proxy failed for '{destination}': {type(e).__name__}. {'Retrying with ISP...' if proxy_type == 'residential' else 'All proxies exhausted.'}")
+                logger.warning(f"[Booking.com] {proxy_type} proxy failed for '{destination}': {type(e).__name__} - {str(e)}. {'Retrying with ISP...' if proxy_type == 'residential' else 'All proxies exhausted.'}")
                 if page_ctx:
                     try:
                         await page_ctx.__aexit__(None, None, None)
@@ -182,7 +196,7 @@ class BookingComScraper:
 
             # Wait for property cards to load
             try:
-                await page.wait_for_selector('[data-testid="property-card"]', timeout=15000)
+                await page.wait_for_selector('[data-testid="property-card"]', timeout=8000)
                 logger.info("[Booking.com] Property cards loaded.")
             except Exception as e:
                 # Check if we were blocked or got a captcha
@@ -225,7 +239,7 @@ class BookingComScraper:
                     price_per_night = round(total_price / self.nights, 2) if total_price else None
 
                     # --- Detect currency from page ---
-                    currency = "USD"
+                    currency = self.target_currency
                     if raw_price_text:
                         if "£" in raw_price_text:
                             currency = "GBP"
@@ -233,6 +247,10 @@ class BookingComScraper:
                             currency = "USD"
                         elif "A$" in raw_price_text:
                             currency = "AUD"
+                        elif "€" in raw_price_text:
+                            currency = "EUR"
+                        elif "¥" in raw_price_text:
+                            currency = "JPY"
 
                     # --- Property URL ---
                     link_el = await card.query_selector('a[data-testid="title-link"]')
@@ -296,7 +314,7 @@ class BookingComScraper:
         clean_url = (
             f"https://www.booking.com{clean_path}"
             f"?checkin={checkin_str}&checkout={checkout_str}"
-            f"&group_adults=2&no_rooms=1&selected_currency=USD"
+            f"&group_adults=2&no_rooms=1&selected_currency={self.target_currency}"
         )
 
         accept_language = self.LOCALE_HEADERS.get(self.locale, "de-DE,de;q=0.9,en;q=0.8")
@@ -312,7 +330,7 @@ class BookingComScraper:
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 })
 
-                await page.goto(clean_url, wait_until="domcontentloaded", timeout=35000)
+                await page.goto(clean_url, wait_until="domcontentloaded", timeout=15000)
 
                 # Hotel meta (hotelCountry, b_csrf_token) is JS-rendered.
                 # Retry scroll+wait up to 3 times until the full page renders.

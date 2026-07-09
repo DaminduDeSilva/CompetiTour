@@ -33,16 +33,28 @@ def get_residential_proxy(country_code: str, sticky: bool = False, session_id: s
 
     Args:
         country_code: ISO 3166-1 alpha-2 code (e.g., "DE", "GB", "AU")
-        sticky: If True, attempts to maintain same IP. (Disabled/rotated by default
-                to ensure maximum reliability and avoid 503 service issues).
+        sticky: If True, attempts to maintain same IP for the session to prevent 
+                cross-IP asset loading which triggers bot detection.
         session_id: Optional string to append to password to force a specific IP session.
 
     Returns:
         Dict with 'server', 'username', 'password' keys for Playwright.
     """
     password = settings.TORCH_PASSWORD
+    cc_upper = country_code.upper()
     
-    # Use working hyphenated format: password-country-de
+    # Regional Gateway Selection to minimize proxy hop latency
+    if cc_upper in ["JP", "AU", "SG", "IN", "CN", "KR"]:
+        host = "geoxasia.x.proxiess.com"
+        port = 6013
+    elif cc_upper in ["US", "CA", "MX", "BR"]:
+        host = "geoxus.x.proxiess.com" # Assuming standard naming convention
+        port = 6011
+    else:
+        host = settings.TORCH_GATEWAY_HOST
+        port = settings.TORCH_GATEWAY_PORT
+
+    # Use working hyphenated format for country
     password = f"{password}-country-{country_code.lower()}"
     
     if sticky and not session_id:
@@ -52,16 +64,19 @@ def get_residential_proxy(country_code: str, sticky: bool = False, session_id: s
     if session_id:
         # Note the underscore '_' separator before session
         password = f"{password}_session-{session_id}"
+        
+    # Append Xtreame Speed and Auth flags for maximum reliability
+    password = f"{password}_lifetime-1h_streaming-1_skipispstatic-1_direct-1"
 
     proxy_config = {
-        "server": f"http://{settings.TORCH_GATEWAY_HOST}:{settings.TORCH_GATEWAY_PORT}",
+        "server": f"http://{host}:{port}",
         "username": settings.TORCH_USERNAME,
         "password": password,
     }
 
     logger.info(
-        "Residential proxy configured: country=%s, rotating | Auth string ending: %s",
-        country_code,
+        "Residential proxy configured: country=%s, sticky=%s, host=%s | Auth string ending: %s",
+        country_code, sticky, host,
         password.split("-country-")[-1] if "-country-" in password else "None"
     )
     return proxy_config
