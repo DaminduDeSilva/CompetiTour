@@ -247,6 +247,10 @@ export default function AnalyzePage() {
               </h3>
               <p className="text-xs text-gray-400 -mt-3">Select which source market prices you want to audit against local OTA listings.</p>
               
+              <div className="text-[10px] text-sky-400/90 bg-sky-500/10 border border-sky-500/20 rounded-lg p-2 -mt-1">
+                <strong>Note:</strong> Each selected source market counts as 1 audit against your monthly quota.
+              </div>
+              
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[
                   { code: "DE", name: "Germany", flag: "🇩🇪" },

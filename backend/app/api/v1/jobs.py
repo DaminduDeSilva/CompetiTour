@@ -87,6 +87,10 @@ async def trigger_package_audit(
         total_tasks=len(request.source_markets) * component_count,
         completed_tasks=0
     )
+    # Increment user audit count (1 credit per market)
+    current_user.audits_used = (current_user.audits_used or 0) + len(request.source_markets)
+    db.add(current_user)
+
     db.add(job)
     await db.commit()
     await db.refresh(job)
