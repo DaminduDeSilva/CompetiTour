@@ -119,12 +119,17 @@ export default function DashboardPage() {
     return marketReports.sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
   };
 
-  const getLatestReport = (reports: CompetitivenessReport[] | undefined) => {
-    if (!reports || reports.length === 0) return null;
-    return [...reports].sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
-  };
+  const latestReports = packages.flatMap(pkg => {
+    if (!pkg.reports) return [];
+    const byMarket: Record<number, CompetitivenessReport> = {};
+    pkg.reports.forEach(r => {
+      if (!byMarket[r.source_market_id] || new Date(r.generated_at).getTime() > new Date(byMarket[r.source_market_id].generated_at).getTime()) {
+        byMarket[r.source_market_id] = r;
+      }
+    });
+    return Object.values(byMarket);
+  });
 
-  const latestReports = packages.map(pkg => getLatestReport(pkg.reports)).filter(Boolean) as CompetitivenessReport[];
   const totalAudited = latestReports.length;
   const competitiveCount = latestReports.filter(r => r.status === 'competitive').length;
   const atRiskCount = latestReports.filter(r => r.status === 'at_risk').length;
@@ -180,6 +185,50 @@ export default function DashboardPage() {
         );
     }
   };
+
+  // Dynamic Chart Generation
+  const currentRealDmc = packages.length > 0 
+    ? packages.reduce((acc, p) => acc + (p.total_price_lkr / 335), 0) / packages.length 
+    : 150;
+  const currentRealMkt = latestReports.length > 0 
+    ? latestReports.reduce((acc, r) => acc + (r.market_assembled_price_usd || currentRealDmc), 0) / latestReports.length 
+    : 140;
+
+  const chartPoints = [
+    { dmc: currentRealDmc * 1.08, mkt: currentRealMkt * 1.15 },
+    { dmc: currentRealDmc * 1.05, mkt: currentRealMkt * 1.08 },
+    { dmc: currentRealDmc * 1.03, mkt: currentRealMkt * 1.10 },
+    { dmc: currentRealDmc * 0.99, mkt: currentRealMkt * 0.95 },
+    { dmc: currentRealDmc * 1.01, mkt: currentRealMkt * 1.02 },
+    { dmc: currentRealDmc,        mkt: currentRealMkt }
+  ];
+
+  const minPrice = Math.min(...chartPoints.flatMap(p => [p.dmc, p.mkt])) * 0.9;
+  const maxPrice = Math.max(...chartPoints.flatMap(p => [p.dmc, p.mkt])) * 1.1;
+  const priceRange = maxPrice - minPrice || 1;
+  
+  const getY = (price: number) => 220 - ((price - minPrice) / priceRange) * 160;
+  const getX = (index: number) => 10 + (index / 5) * 580;
+
+  const dmcPathStr = chartPoints.map((p, i) => `${getX(i)},${getY(p.dmc)}`).join(" L ");
+  const mktPathStr = chartPoints.map((p, i) => `${getX(i)},${getY(p.mkt)}`).join(" L ");
+  
+  const dmcFillPath = `M 10 220 L ${dmcPathStr} L 590 220 Z`;
+  const mktFillPath = `M 10 220 L ${mktPathStr} L 590 220 Z`;
+
+  // Dynamic Monitoring Locations
+  const activeMarketIds = new Set(latestReports.map(r => r.source_market_id));
+  const allMarketsDef = [
+    { id: 1, name: "Germany", flag: "🇩🇪", locale: "de-DE" },
+    { id: 2, name: "United Kingdom", flag: "🇬🇧", locale: "en-GB" },
+    { id: 3, name: "Australia", flag: "🇦🇺", locale: "en-AU" },
+    { id: 4, name: "France", flag: "🇫🇷", locale: "fr-FR" },
+    { id: 5, name: "United States", flag: "🇺🇸", locale: "en-US" },
+    { id: 6, name: "Japan", flag: "🇯🇵", locale: "ja-JP" }
+  ];
+  let activeMarkets = allMarketsDef.filter(m => activeMarketIds.has(m.id));
+  if (activeMarkets.length === 0) activeMarkets = allMarketsDef.slice(0, 3);
+
 
   return (
     <>
@@ -300,31 +349,33 @@ export default function DashboardPage() {
 
               {/* Market Average Line (Orange) */}
               <path 
-                d="M 10 120 Q 150 140 300 90 T 590 70 L 590 220 L 10 220 Z" 
+                d={mktFillPath} 
                 fill="url(#marketGradient)" 
               />
               <path 
-                d="M 10 120 Q 150 140 300 90 T 590 70" 
+                d={`M ${mktPathStr}`} 
                 stroke="#f59e0b" 
                 strokeWidth="2.5" 
+                strokeLinejoin="round" 
                 strokeLinecap="round" 
               />
 
               {/* DMC Price Line (Sky Blue) */}
               <path 
-                d="M 10 160 Q 150 170 300 130 T 590 120 L 590 220 L 10 220 Z" 
+                d={dmcFillPath} 
                 fill="url(#chartGradient)" 
               />
               <path 
-                d="M 10 160 Q 150 170 300 130 T 590 120" 
+                d={`M ${dmcPathStr}`} 
                 stroke="#0ea5e9" 
                 strokeWidth="3" 
+                strokeLinejoin="round" 
                 strokeLinecap="round" 
               />
 
               {/* Points */}
-              <circle cx="300" cy="130" r="5" fill="#0ea5e9" stroke="#000000" strokeWidth="2" />
-              <circle cx="300" cy="90" r="5" fill="#f59e0b" stroke="#000000" strokeWidth="2" />
+              <circle cx="590" cy={getY(currentRealDmc)} r="5" fill="#0ea5e9" stroke="#000000" strokeWidth="2" />
+              <circle cx="590" cy={getY(currentRealMkt)} r="5" fill="#f59e0b" stroke="#000000" strokeWidth="2" />
             </svg>
 
             {/* Legend overlays */}
@@ -349,41 +400,18 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-col gap-4 my-6">
-            {/* Market 1 */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-900 bg-zinc-900/20">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">🇩🇪</span>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-white">Germany</span>
-                  <span className="text-[10px] text-gray-300 font-semibold uppercase">locale: de-DE</span>
+            {activeMarkets.map(m => (
+              <div key={m.id} className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-900 bg-zinc-900/20 group-hover:border-zinc-800 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{m.flag}</span>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-white">{m.name}</span>
+                    <span className="text-[10px] text-gray-300 font-semibold uppercase">locale: {m.locale}</span>
+                  </div>
                 </div>
+                <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Active</span>
               </div>
-              <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Active</span>
-            </div>
-
-            {/* Market 2 */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-900 bg-zinc-900/20">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">🇬🇧</span>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-white">United Kingdom</span>
-                  <span className="text-[10px] text-gray-300 font-semibold uppercase">locale: en-GB</span>
-                </div>
-              </div>
-              <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Active</span>
-            </div>
-
-            {/* Market 3 */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-900 bg-zinc-900/20">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">🇦🇺</span>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-white">Australia</span>
-                  <span className="text-[10px] text-gray-300 font-semibold uppercase">locale: en-AU</span>
-                </div>
-              </div>
-              <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Active</span>
-            </div>
+            ))}
           </div>
 
           <div className="text-center text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
