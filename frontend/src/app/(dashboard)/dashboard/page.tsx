@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import PageWrapper from "@/components/layout/PageWrapper";
 import { 
   FolderHeart, 
   Percent, 
@@ -183,7 +182,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <PageWrapper>
+    <>
       {/* Top Banner Message */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-6 rounded-2xl border border-sky-500/20 bg-sky-500/5 backdrop-blur-md">
         <div>
@@ -505,6 +504,6 @@ export default function DashboardPage() {
           await fetchPackages();
         }}
       />
-    </PageWrapper>
+    </>
   );
 }

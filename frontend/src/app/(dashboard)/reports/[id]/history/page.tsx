@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import PageWrapper from "@/components/layout/PageWrapper";
-import { fetchDashboardPackage } from "@/app/dashboard/actions";
+import { fetchDashboardPackage } from "@/app/(dashboard)/dashboard/actions";
 import {
   ArrowLeft,
   Download,
@@ -50,10 +49,55 @@ export default function ReportHistoryPage() {
   const baseLkr = packageData?.total_price_lkr || 0;
   const baseUsd = baseLkr / EXCHANGE_RATE;
 
+  const reportsList = (packageData?.reports || [])
+    .map((rep: any) => {
+      const marketNames: Record<number, { name: string; flag: string; curr: string }> = {
+        1: { name: "Germany (DE)", flag: "🇩🇪", curr: "EUR" },
+        2: { name: "United Kingdom (GB)", flag: "🇬🇧", curr: "GBP" },
+        3: { name: "Australia (AU)", flag: "🇦🇺", curr: "AUD" },
+        4: { name: "France (FR)", flag: "🇫🇷", curr: "EUR" },
+        5: { name: "United States (US)", flag: "🇺🇸", curr: "USD" },
+        6: { name: "Japan (JP)", flag: "🇯🇵", curr: "JPY" }
+      };
+      const marketInfo = marketNames[rep.source_market_id] || { name: "Germany (DE)", flag: "🇩🇪", curr: "EUR" };
+      const dmcRateUsd = rep.dmc_price_usd;
+      const dmcRateLkr = dmcRateUsd * EXCHANGE_RATE;
+      const dmcRate = `$${Math.round(dmcRateUsd).toLocaleString()} (LKR ${Math.round(dmcRateLkr).toLocaleString()})`;
+      
+      const marketPrice = rep.market_assembled_price_usd !== null && rep.market_assembled_price_usd !== undefined
+        ? `$${Math.round(rep.market_assembled_price_usd).toLocaleString()} (${marketInfo.curr})`
+        : "N/A";
+      const variance = rep.price_delta_pct !== null && rep.price_delta_pct !== undefined
+        ? `${rep.price_delta_pct > 0 ? "+" : ""}${rep.price_delta_pct}%`
+        : "N/A";
+      const date = new Date(rep.generated_at).toLocaleString();
+      return {
+        date,
+        market: `${marketInfo.name} ${marketInfo.flag}`,
+        dmc: dmcRate,
+        marketPrice,
+        variance,
+        status: rep.status,
+        raw_report: rep
+      };
+    })
+    .sort((a: any, b: any) => new Date(b.raw_report.generated_at).getTime() - new Date(a.raw_report.generated_at).getTime());
+
+  const latestReport = selectedReportId
+    ? reportsList.find((r: any) => r.raw_report.id === selectedReportId) || reportsList[0]
+    : reportsList[0];
+  const lastAuditedStr = latestReport ? latestReport.date : "Never";
+
   const matchedComponents = (packageData?.components || []).map((comp: any) => {
-    // Find the latest match by sorting matches by ID descending
-    const sortedMatches = comp.matches && comp.matches.length > 0 
-      ? [...comp.matches].sort((a: any, b: any) => b.id - a.id) 
+    // Filter matches to only those for the currently selected report's market
+    const targetMarketId = latestReport?.raw_report?.source_market_id;
+    const filteredMatches = comp.matches
+      ? comp.matches.filter((m: any) => targetMarketId ? m.listing?.source_market_id === targetMarketId : true)
+      : [];
+      
+    // Find the latest match for this market by sorting matches by ID descending
+    const sortedMatches = filteredMatches.length > 0 
+      ? [...filteredMatches].sort((a: any, b: any) => b.id - a.id) 
       : [];
     const match = sortedMatches.length > 0 ? sortedMatches[0] : null;
     const yourCostUsd = comp.base_price_lkr / EXCHANGE_RATE;
@@ -106,51 +150,12 @@ export default function ReportHistoryPage() {
     }
   });
 
-  const reportsList = (packageData?.reports || [])
-    .map((rep: any) => {
-      const marketNames: Record<number, { name: string; flag: string; curr: string }> = {
-        1: { name: "Germany (DE)", flag: "🇩🇪", curr: "EUR" },
-        2: { name: "United Kingdom (GB)", flag: "🇬🇧", curr: "GBP" },
-        3: { name: "Australia (AU)", flag: "🇦🇺", curr: "AUD" },
-        4: { name: "France (FR)", flag: "🇫🇷", curr: "EUR" },
-        5: { name: "United States (US)", flag: "🇺🇸", curr: "USD" },
-        6: { name: "Japan (JP)", flag: "🇯🇵", curr: "JPY" }
-      };
-      const marketInfo = marketNames[rep.source_market_id] || { name: "Germany (DE)", flag: "🇩🇪", curr: "EUR" };
-      const dmcRateUsd = rep.dmc_price_usd;
-      const dmcRateLkr = dmcRateUsd * EXCHANGE_RATE;
-      const dmcRate = `$${Math.round(dmcRateUsd).toLocaleString()} (LKR ${Math.round(dmcRateLkr).toLocaleString()})`;
-      
-      const marketPrice = rep.market_assembled_price_usd !== null && rep.market_assembled_price_usd !== undefined
-        ? `$${Math.round(rep.market_assembled_price_usd).toLocaleString()} (${marketInfo.curr})`
-        : "N/A";
-      const variance = rep.price_delta_pct !== null && rep.price_delta_pct !== undefined
-        ? `${rep.price_delta_pct > 0 ? "+" : ""}${rep.price_delta_pct}%`
-        : "N/A";
-      const date = new Date(rep.generated_at).toLocaleString();
-      return {
-        date,
-        market: `${marketInfo.name} ${marketInfo.flag}`,
-        dmc: dmcRate,
-        marketPrice,
-        variance,
-        status: rep.status,
-        raw_report: rep
-      };
-    })
-    .sort((a: any, b: any) => new Date(b.raw_report.generated_at).getTime() - new Date(a.raw_report.generated_at).getTime());
-
   const totalDmcUsd = matchedComponents.reduce((acc: number, c: any) => acc + c.yourCostUsd, 0);
   const availableScrapedComponents = matchedComponents.filter((c: any) => !c.isUnavailable);
   const totalScrapedUsd = availableScrapedComponents.reduce((acc: number, c: any) => acc + (c.scrapedCostUsd || 0), 0);
   const totalDmcUsdForAvailable = availableScrapedComponents.reduce((acc: number, c: any) => acc + c.yourCostUsd, 0);
   const totalDeltaPct = totalScrapedUsd > 0 ? Math.round(((totalDmcUsdForAvailable - totalScrapedUsd) / totalScrapedUsd) * 1000) / 10 : 0;
   const hasUnavailableComponents = matchedComponents.some((c: any) => c.isUnavailable);
-
-  const latestReport = selectedReportId
-    ? reportsList.find((r: any) => r.raw_report.id === selectedReportId) || reportsList[0]
-    : reportsList[0];
-  const lastAuditedStr = latestReport ? latestReport.date : "Never";
 
   // Use the selected report's snapshot data for the top dashboard metrics
   const displayTotalDmcUsd = latestReport?.raw_report?.dmc_price_usd ?? totalDmcUsd;
@@ -222,19 +227,19 @@ export default function ReportHistoryPage() {
 
   if (isLoading) {
     return (
-      <PageWrapper>
+      <>
         <div className="flex h-64 items-center justify-center">
           <div className="flex items-center gap-2 text-sky-500 animate-pulse">
             <BrainCircuit size={24} className="animate-spin" />
             <span className="font-bold text-sm">Compiling Report...</span>
           </div>
         </div>
-      </PageWrapper>
+      </>
     );
   }
 
   return (
-    <PageWrapper>
+    <>
       {/* Header Back & Action Buttons */}
       <div className="flex items-center justify-between border-b border-zinc-900 pb-6">
         <Link
@@ -455,6 +460,6 @@ export default function ReportHistoryPage() {
           </table>
         </div>
       </div>
-    </PageWrapper>
+    </>
   );
 }

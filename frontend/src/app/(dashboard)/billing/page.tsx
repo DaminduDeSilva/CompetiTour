@@ -1,16 +1,13 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import PageWrapper from "@/components/layout/PageWrapper";
 import {
   CreditCard, CheckCircle2, Zap, Globe, FolderOpen,
   Building2, ArrowRight, Mail
 } from "lucide-react";
 import {
   PLANS,
-  CURRENT_USAGE,
-  getCurrentPlan,
-  getUsagePercent,
+  useQuota,
   formatLimit,
   type Plan,
 } from "@/lib/quota";
@@ -33,9 +30,8 @@ const colorMap: Record<string, { ring: string; badge: string; btn: string; accen
   purple:  { ring: "border-purple-500/40",      badge: "text-purple-300 bg-purple-500/10 border-purple-500/30", btn: "bg-purple-600 hover:bg-purple-500 text-white",           accent: "text-purple-300", bar: "bg-purple-500" },
 };
 
-function PlanCard({ plan, isCurrent }: { plan: Plan; isCurrent: boolean }) {
+function PlanCard({ plan, isCurrent, usedPct, auditsUsed }: { plan: Plan; isCurrent: boolean; usedPct: number; auditsUsed: number }) {
   const c = colorMap[plan.color];
-  const usedPct = isCurrent ? getUsagePercent() : 0;
   const limit = plan.auditsPerMonth;
 
   return (
@@ -77,7 +73,7 @@ function PlanCard({ plan, isCurrent }: { plan: Plan; isCurrent: boolean }) {
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between text-[10px]">
             <span className="text-gray-400">Usage this month</span>
-            <span className={`font-bold ${c.accent}`}>{CURRENT_USAGE.auditsUsed}/{limit}</span>
+            <span className={`font-bold ${c.accent}`}>{auditsUsed}/{formatLimit(limit)}</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-zinc-800 overflow-hidden">
             <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${usedPct}%` }} />
@@ -109,11 +105,10 @@ function PlanCard({ plan, isCurrent }: { plan: Plan; isCurrent: boolean }) {
 }
 
 export default function BillingPage() {
-  const currentPlan = getCurrentPlan();
-  const usedPct = getUsagePercent();
+  const { usage, plan: currentPlan, usedPct, limit } = useQuota();
 
   return (
-    <PageWrapper>
+    <>
       {/* Header */}
       <div className="flex items-start justify-between border-b border-white/10 pb-6">
         <div>
@@ -137,12 +132,12 @@ export default function BillingPage() {
       <div className="p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <p className="text-xs font-bold text-white">Current Billing Cycle</p>
-          <p className="text-[10px] text-gray-400">Renews on <strong className="text-gray-200">{CURRENT_USAGE.billingPeriodEnd}</strong> · Managed by ZeroTrace</p>
+          <p className="text-[10px] text-gray-400">Renews on <strong className="text-gray-200">{usage.billingPeriodEnd}</strong> · Managed by ZeroTrace</p>
         </div>
         <div className="flex items-center gap-6">
           <div className="text-center">
             <p className="text-xs text-gray-400">Audits Used</p>
-            <p className="text-lg font-black text-white">{CURRENT_USAGE.auditsUsed}<span className="text-gray-500 text-sm font-medium">/{formatLimit(currentPlan.auditsPerMonth)}</span></p>
+            <p className="text-lg font-black text-white">{usage.auditsUsed}<span className="text-gray-500 text-sm font-medium">/{formatLimit(limit)}</span></p>
           </div>
           <div className="w-32">
             <div className="flex justify-between text-[10px] text-gray-400 mb-1">
@@ -162,7 +157,7 @@ export default function BillingPage() {
       {/* Plan Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {PLANS.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} isCurrent={plan.id === CURRENT_USAGE.planId} />
+          <PlanCard key={plan.id} plan={plan} isCurrent={plan.id === usage.planId} usedPct={usedPct} auditsUsed={usage.auditsUsed} />
         ))}
       </div>
 
@@ -174,7 +169,7 @@ export default function BillingPage() {
           <div className="grid grid-cols-5 px-6 py-3 border-b border-zinc-900 bg-zinc-950/60 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
             <span>Feature</span>
             {PLANS.map((p) => (
-              <span key={p.id} className={`text-center ${p.id === CURRENT_USAGE.planId ? "text-indigo-300" : ""}`}>{p.name}</span>
+              <span key={p.id} className={`text-center ${p.id === usage.planId ? "text-indigo-300" : ""}`}>{p.name}</span>
             ))}
           </div>
           {FEATURES.map((row, idx) => (
@@ -185,7 +180,7 @@ export default function BillingPage() {
               <span className="text-gray-300 font-medium">{row.label}</span>
               {[row.free, row.starter, row.professional, row.enterprise].map((val, i) => {
                 const planId = PLANS[i].id;
-                const isCurrent = planId === CURRENT_USAGE.planId;
+                const isCurrent = planId === usage.planId;
                 return (
                   <span
                     key={i}
@@ -218,6 +213,6 @@ export default function BillingPage() {
           hello@zerotrace.io
         </a>
       </div>
-    </PageWrapper>
+    </>
   );
 }

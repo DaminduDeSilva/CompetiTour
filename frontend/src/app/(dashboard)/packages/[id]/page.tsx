@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import PageWrapper from "@/components/layout/PageWrapper";
 import { 
   Plus, Trash2, MapPin, Calendar, DollarSign, 
   ChevronRight, Hotel, Navigation, Compass,
   CheckCircle2, AlertCircle, Sparkles, FolderHeart, ArrowLeft,
   CheckCircle, Play
 } from "lucide-react";
-import { fetchDashboardPackage, updateDashboardPackage } from "@/app/dashboard/actions";
+import { fetchDashboardPackage, updateDashboardPackage } from "@/app/(dashboard)/dashboard/actions";
 import Link from "next/link";
 
 export default function EditPackagePage() {
@@ -133,14 +132,14 @@ export default function EditPackagePage() {
 
   if (loading) {
     return (
-      <PageWrapper>
+      <>
         <div className="flex items-center justify-center h-64 text-gray-400">Loading package...</div>
-      </PageWrapper>
+      </>
     );
   }
 
   return (
-    <PageWrapper>
+    <>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-6">
         <Link href="/packages" className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors">
@@ -526,6 +525,6 @@ export default function EditPackagePage() {
           </div>
         </div>
       </form>
-    </PageWrapper>
+    </>
   );
 }

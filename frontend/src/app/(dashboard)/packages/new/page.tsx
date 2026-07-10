@@ -2,13 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import PageWrapper from "@/components/layout/PageWrapper";
 import { 
   Plus, Trash2, MapPin, Calendar, DollarSign, 
   ChevronRight, Hotel, Navigation, Compass,
   CheckCircle2, AlertCircle, Sparkles, PackagePlus
 } from "lucide-react";
-import { createDashboardPackage } from "@/app/dashboard/actions";
+import { createDashboardPackage } from "@/app/(dashboard)/dashboard/actions";
 
 export default function NewPackagePage() {
   const router = useRouter();
@@ -96,7 +95,7 @@ export default function NewPackagePage() {
   };
 
   return (
-    <PageWrapper>
+    <>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -474,6 +473,6 @@ export default function NewPackagePage() {
             </div>
           </div>
         </form>
-    </PageWrapper>
+    </>
   );
 }

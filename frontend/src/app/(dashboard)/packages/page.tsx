@@ -1,12 +1,11 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import PageWrapper from "@/components/layout/PageWrapper";
 import {
   FolderHeart, Search, Filter, Plus, Eye, Play,
   ArrowRight, Clock, CheckCircle, AlertTriangle, TrendingDown, Trash2, Edit3
 } from "lucide-react";
-import { fetchDashboardPackages, runPackageAudit, deletePackage } from "@/app/dashboard/actions";
+import { fetchDashboardPackages, runPackageAudit, deletePackage } from "@/app/(dashboard)/dashboard/actions";
 import AuditProgressModal from "@/components/ui/AuditProgressModal";
 
 type Package = {
@@ -79,7 +78,7 @@ export default function PackagesPage() {
   });
 
   return (
-    <PageWrapper>
+    <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -213,6 +212,6 @@ export default function PackagesPage() {
           await fetchPackages();
         }}
       />
-    </PageWrapper>
+    </>
   );
 }

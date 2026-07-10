@@ -1,9 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import PageWrapper from "@/components/layout/PageWrapper";
 import { BarChart3, Filter, Eye, Download, Search, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
-import { fetchDashboardPackages } from "@/app/dashboard/actions";
+import { fetchDashboardPackages } from "@/app/(dashboard)/dashboard/actions";
 
 const statusConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   competitive: { label: "Competitive", icon: <CheckCircle size={12} />, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
@@ -86,7 +85,7 @@ export default function ReportsPage() {
   });
 
   return (
-    <PageWrapper>
+    <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -190,7 +189,7 @@ export default function ReportsPage() {
           </tbody>
         </table>
       </div>
-    </PageWrapper>
+    </>
   );
 }
 

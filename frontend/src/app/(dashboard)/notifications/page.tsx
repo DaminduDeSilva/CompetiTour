@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import PageWrapper from "@/components/layout/PageWrapper";
 import { Bell, TrendingDown, AlertTriangle, CheckCircle, Info, X } from "lucide-react";
-import { fetchDashboardPackages, fetchCurrentUserProfile } from "@/app/dashboard/actions";
+import { fetchDashboardPackages, fetchCurrentUserProfile } from "@/app/(dashboard)/dashboard/actions";
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
   leakage:       { icon: <TrendingDown size={16} />,    color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20" },
@@ -86,7 +85,7 @@ export default function NotificationsPage() {
   const unread = items.filter((n) => !n.read).length;
 
   return (
-    <PageWrapper>
+    <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -146,6 +145,6 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
-    </PageWrapper>
+    </>
   );
 }

@@ -540,12 +540,19 @@ async def run_audit(
             # Save individual component matches to DB
             for result in component_results:
                 if result.matched_hotel_name and result.confidence > 70:
-                    # Resolve source_market_id & platform_id
-                    market_id_map = {"DE": 1, "GB": 2, "AU": 3, "FR": 4, "US": 5, "JP": 6}
-                    src_mkt_id = market_id_map.get(source_market.upper(), 1)
-                    
-                    platform_id_map = {"Booking.com": 1, "Agoda": 2}
-                    plat_id = platform_id_map.get(result.platform, 1)
+                    # Resolve source_market_id & platform_id dynamically
+                    from app.models.source_market import SourceMarket
+                    from app.models.ota_platform import OTAPlatform
+
+                    market_query = await db.execute(
+                        select(SourceMarket.id).where(SourceMarket.country_code == source_market.upper())
+                    )
+                    src_mkt_id = market_query.scalar() or 1
+
+                    platform_query = await db.execute(
+                        select(OTAPlatform.id).where(OTAPlatform.name == result.platform)
+                    )
+                    plat_id = platform_query.scalar() or 1
 
                     from app.models.ota_listing import OTAListing
                     comp_type = next((c.component_type for c in package.components if c.id == result.component_id), "hotel")

@@ -19,6 +19,8 @@ class UserResponse(BaseModel):
     company_name: str | None = None
     is_active: bool
     is_superuser: bool
+    subscription_tier: str | None = "Professional"
+    audits_used: int | None = 7
     created_at: datetime
     
     class Config:

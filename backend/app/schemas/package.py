@@ -45,6 +45,7 @@ class PackageUpdate(BaseModel):
 class OTAListingResponse(BaseModel):
     id: int
     platform_id: Optional[int] = None
+    source_market_id: Optional[int] = None
     component_type: str
     raw_name: str
     price: Optional[float] = None

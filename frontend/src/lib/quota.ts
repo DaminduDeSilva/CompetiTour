@@ -1,5 +1,6 @@
-// TODO(backend): Replace with a real API call to GET /settings/plan
-// This file is the single source of truth for quota/plan state in the frontend.
+// This file provides a reactive hook for quota/plan state connected to the backend.
+import { useState, useEffect } from 'react';
+import { createClient } from "@/utils/supabase/client";
 
 export type PlanId = "free_trial" | "starter" | "professional" | "enterprise";
 
@@ -67,33 +68,56 @@ export interface CurrentUsage {
   billingPeriodEnd: string; // ISO date string
 }
 
-// Mock: simulating a Professional plan user mid-cycle
-export const CURRENT_USAGE: CurrentUsage = {
-  planId: "professional",
-  auditsUsed: 7,
-  packagesCreated: 5,
-  billingPeriodEnd: "2026-08-01",
-};
-
-export function getCurrentPlan(): Plan {
-  return PLANS.find((p) => p.id === CURRENT_USAGE.planId) ?? PLANS[1];
-}
-
-export function getAuditLimit(): number {
-  return getCurrentPlan().auditsPerMonth;
-}
-
-export function isQuotaExhausted(): boolean {
-  const limit = getAuditLimit();
-  return CURRENT_USAGE.auditsUsed >= limit;
-}
-
-export function getUsagePercent(): number {
-  const limit = getAuditLimit();
-  if (limit === Infinity) return 0;
-  return Math.min(100, Math.round((CURRENT_USAGE.auditsUsed / limit) * 100));
-}
-
 export function formatLimit(val: number): string {
   return val === Infinity ? "Unlimited" : val.toString();
+}
+
+export function useQuota() {
+  const [usage, setUsage] = useState<CurrentUsage>({
+    planId: "free_trial",
+    auditsUsed: 0,
+    packagesCreated: 0,
+    billingPeriodEnd: "",
+  });
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.user?.email) {
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+            const res = await fetch(`${API_URL}/users/by-email/${data.session.user.email}`, {
+                headers: { Authorization: `Bearer ${data.session.access_token}` }
+            });
+            if (res.ok) {
+              const dbUser = await res.json();
+              if (dbUser && dbUser.subscription_tier) {
+                  let mappedId = dbUser.subscription_tier.toLowerCase().replace(" ", "_") as PlanId;
+                  // fallback to starter if missing
+                  if (!PLANS.find(p => p.id === mappedId)) mappedId = "starter";
+                  
+                  setUsage(prev => ({
+                      ...prev,
+                      planId: mappedId,
+                      auditsUsed: dbUser.audits_used || 0
+                  }));
+              }
+            }
+        } catch(e) { console.error("Failed to load user quota", e); }
+        finally { setLoading(false); }
+      } else {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const plan = PLANS.find((p) => p.id === usage.planId) ?? PLANS[1];
+  const limit = plan.auditsPerMonth;
+  const usedPct = limit === Infinity ? 0 : Math.min(100, Math.round((usage.auditsUsed / limit) * 100));
+  const exhausted = usage.auditsUsed >= limit;
+
+  return { usage, plan, limit, usedPct, exhausted, loading };
 }

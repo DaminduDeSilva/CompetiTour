@@ -1,13 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import PageWrapper from "@/components/layout/PageWrapper";
 import {
   ShieldAlert, Cpu, Settings as SettingsIcon, Save,
   CheckCircle, KeyRound, Network, Building2, Bell, CreditCard, ArrowRight, Zap
 } from "lucide-react";
-import { CURRENT_USAGE, getCurrentPlan, getUsagePercent, formatLimit } from "@/lib/quota";
-import { fetchCurrentUserProfile } from "@/app/dashboard/actions";
+import { useQuota, formatLimit } from "@/lib/quota";
+import { fetchCurrentUserProfile } from "@/app/(dashboard)/dashboard/actions";
 
 const TABS = ["Workspace", "AI Matcher", "Proxy Status"] as const;
 type Tab = typeof TABS[number];
@@ -15,6 +14,7 @@ type Tab = typeof TABS[number];
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Workspace");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const { usage, plan, limit, usedPct } = useQuota();
 
   // Workspace state
   // TODO(backend): Fetch from GET /settings/workspace; save to PUT /settings/workspace
@@ -56,7 +56,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <PageWrapper>
+    <>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-6">
         <div>
@@ -153,9 +153,6 @@ export default function SettingsPage() {
             {/* Right: Plan info */}
             <div className="lg:col-span-4 flex flex-col gap-4">
               {(() => {
-                const plan = getCurrentPlan();
-                const usedPct = getUsagePercent();
-                const limit = plan.auditsPerMonth;
                 const barColor = usedPct >= 95 ? "bg-red-500" : usedPct >= 80 ? "bg-amber-400" : "bg-sky-500";
                 const textColor = usedPct >= 95 ? "text-red-400" : usedPct >= 80 ? "text-amber-400" : "text-sky-400";
                 return (
@@ -173,7 +170,7 @@ export default function SettingsPage() {
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between text-[10px]">
                         <span className="flex items-center gap-1 text-gray-400"><Zap size={10} className={textColor} /> Audits This Month</span>
-                        <span className={`font-black ${textColor}`}>{CURRENT_USAGE.auditsUsed}/{formatLimit(limit)}</span>
+                        <span className={`font-black ${textColor}`}>{usage.auditsUsed}/{formatLimit(limit)}</span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
                         <div
@@ -194,7 +191,7 @@ export default function SettingsPage() {
                         { label: "Max Packages",   val: formatLimit(plan.packages) },
                         { label: "Source Markets", val: formatLimit(plan.markets) },
                         { label: "OTA Platforms",  val: `${plan.otas} platforms` },
-                        { label: "Renewal",        val: CURRENT_USAGE.billingPeriodEnd },
+                        { label: "Renewal",        val: usage.billingPeriodEnd },
                       ].map(r => (
                         <div key={r.label} className="flex justify-between items-center">
                           <span className="text-gray-400">{r.label}</span>
@@ -329,6 +326,6 @@ export default function SettingsPage() {
           </div>
         )}
       </form>
-    </PageWrapper>
+    </>
   );
 }

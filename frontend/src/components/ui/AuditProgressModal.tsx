@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { getJobStatus } from "@/app/dashboard/actions";
+import { getJobStatus } from "@/app/(dashboard)/dashboard/actions";
 import { CheckCircle2, XCircle, Loader2, Radio } from "lucide-react";
 
 interface AuditProgressModalProps {

@@ -34,11 +34,13 @@ async def lifespan(app: FastAPI):
             # Seed source markets
             res_m = await session.execute(select(SourceMarket))
             if not res_m.scalars().first():
-                session.add(SourceMarket(country_code="DE", country_name="Germany", currency="USD", locale="de-DE", timezone="Usdope/Berlin"))
-                session.add(SourceMarket(country_code="GB", country_name="United Kingdom", currency="GBP", locale="en-GB", timezone="Usdope/London"))
+                session.add(SourceMarket(country_code="DE", country_name="Germany", currency="EUR", locale="de-DE", timezone="Europe/Berlin"))
+                session.add(SourceMarket(country_code="GB", country_name="United Kingdom", currency="GBP", locale="en-GB", timezone="Europe/London"))
                 session.add(SourceMarket(country_code="AU", country_name="Australia", currency="AUD", locale="en-AU", timezone="Australia/Sydney"))
+                session.add(SourceMarket(country_code="FR", country_name="France", currency="EUR", locale="fr-FR", timezone="Europe/Paris"))
+                session.add(SourceMarket(country_code="US", country_name="United States", currency="USD", locale="en-US", timezone="America/New_York"))
+                session.add(SourceMarket(country_code="JP", country_name="Japan", currency="JPY", locale="ja-JP", timezone="Asia/Tokyo"))
                 logger.info("Seeding source markets...")
-            
             # Seed platforms
             res_p = await session.execute(select(OTAPlatform))
             if not res_p.scalars().first():

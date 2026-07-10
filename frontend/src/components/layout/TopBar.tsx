@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Radio, CloudLightning, TrendingDown, AlertTriangle, CheckCircle, Zap } from "lucide-react";
-import { CURRENT_USAGE, getCurrentPlan, getUsagePercent, formatLimit } from "@/lib/quota";
+import { useQuota, formatLimit } from "@/lib/quota";
 
 import { createClient } from "@/utils/supabase/client";
 
@@ -25,12 +25,11 @@ export default function TopBar() {
   const isAnalyzing = pathname?.includes("/analyze");
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
   const unread = previewNotifications.filter(n => !n.read).length;
 
-  const plan = getCurrentPlan();
-  const usedPct = getUsagePercent();
-  const limit = plan.auditsPerMonth;
+  const { usage, plan, limit, usedPct, loading: loadingQuota } = useQuota();
   const meterColor = usedPct >= 95 ? "bg-red-500" : usedPct >= 80 ? "bg-amber-400" : "bg-sky-500";
   const textColor = usedPct >= 95 ? "text-red-400" : usedPct >= 80 ? "text-amber-400" : "text-sky-400";
 
@@ -42,6 +41,7 @@ export default function TopBar() {
       if (data?.user) {
         setUser(data.user);
       }
+      setLoadingUser(false);
     };
     fetchUser();
   }, []);
@@ -87,15 +87,21 @@ export default function TopBar() {
               <Zap size={10} className={textColor} />
               Audits This Month
             </span>
-            <span className={`text-[10px] font-black ${textColor}`}>
-              {CURRENT_USAGE.auditsUsed}/{formatLimit(limit)}
-            </span>
+            {loadingQuota ? (
+              <div className="w-8 h-3 bg-zinc-800 rounded animate-pulse" />
+            ) : (
+              <span className={`text-[10px] font-black ${textColor}`}>
+                {usage.auditsUsed}/{formatLimit(limit)}
+              </span>
+            )}
           </div>
           <div className="w-full h-1 rounded-full bg-zinc-800 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${meterColor}`}
-              style={{ width: limit === Infinity ? "0%" : `${usedPct}%` }}
-            />
+            {!loadingQuota && (
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${meterColor}`}
+                style={{ width: limit === Infinity ? "0%" : `${usedPct}%` }}
+              />
+            )}
           </div>
         </Link>
 
@@ -144,15 +150,27 @@ export default function TopBar() {
 
         {/* User Card */}
         <div className="flex items-center gap-3 pl-2 border-l border-zinc-800">
-          <div className="flex flex-col text-right">
-            <span className="text-xs font-bold text-white">{user?.email || "DMC User"}</span>
-            <span className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">
-              {user ? "DMC Partner" : "Not Logged In"}
-            </span>
-          </div>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-bold text-white text-xs uppercase">
-            {user?.email ? user.email.substring(0, 2) : "ME"}
-          </div>
+          {loadingUser ? (
+            <div className="flex flex-col items-end gap-1.5 justify-center">
+              <div className="w-24 h-3 bg-zinc-800 rounded animate-pulse" />
+              <div className="w-16 h-2 bg-zinc-800 rounded animate-pulse" />
+            </div>
+          ) : (
+            <div className="flex flex-col text-right">
+              <span className="text-xs font-bold text-white">{user?.email || "DMC User"}</span>
+              <span className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">
+                {user ? "DMC Partner" : "Not Logged In"}
+              </span>
+            </div>
+          )}
+          
+          {loadingUser ? (
+            <div className="w-9 h-9 rounded-full bg-zinc-800 animate-pulse" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-bold text-white text-xs uppercase">
+              {user?.email ? user.email.substring(0, 2) : "ME"}
+            </div>
+          )}
         </div>
       </div>
     </header>

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import PageWrapper from "@/components/layout/PageWrapper";
 import { 
   CheckCircle2, 
   Loader2, 
@@ -21,8 +20,8 @@ import {
   Zap
 } from "lucide-react";
 import Link from "next/link";
-import { CURRENT_USAGE, getCurrentPlan, getAuditLimit, formatLimit, isQuotaExhausted } from "@/lib/quota";
-import { fetchDashboardPackage, runPackageAudit, getJobStatus } from "@/app/dashboard/actions";
+import { useQuota, formatLimit } from "@/lib/quota";
+import { fetchDashboardPackage, runPackageAudit, getJobStatus } from "@/app/(dashboard)/dashboard/actions";
 
 interface Step {
   id: number;
@@ -44,6 +43,7 @@ export default function AnalyzePage() {
   const [selectedMarkets, setSelectedMarkets] = useState<string[]>(["DE"]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [realLogs, setRealLogs] = useState<string[]>(["[System] Audit job configured and initializing..."]);
+  const { usage, plan, limit, exhausted } = useQuota();
 
   const [steps, setSteps] = useState<Step[]>([
     {
@@ -217,17 +217,17 @@ export default function AnalyzePage() {
 
   if (isLoadingPackage) {
     return (
-      <PageWrapper>
+      <>
         <div className="flex h-64 items-center justify-center">
           <Loader2 size={32} className="animate-spin text-sky-500" />
         </div>
-      </PageWrapper>
+      </>
     );
   }
 
   if (isConfiguring) {
     return (
-      <PageWrapper>
+      <>
         {/* Header */}
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -356,7 +356,7 @@ export default function AnalyzePage() {
               <button 
                 disabled={isSubmitting}
                 onClick={async () => {
-                  if (isQuotaExhausted()) {
+                  if (exhausted) {
                     setShowQuotaGate(true);
                   } else {
                     if (selectedMarkets.length === 0) {
@@ -390,8 +390,6 @@ export default function AnalyzePage() {
 
         {/* Quota Gate Modal */}
         {showQuotaGate && (() => {
-          const plan = getCurrentPlan();
-          const limit = getAuditLimit();
           return (
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
               <div className="w-full max-w-md p-8 rounded-2xl border border-red-500/20 bg-zinc-950 shadow-2xl flex flex-col gap-6">
@@ -413,7 +411,7 @@ export default function AnalyzePage() {
                 <div className="flex flex-col gap-3">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Audits used this month</span>
-                    <span className="font-bold text-red-400">{CURRENT_USAGE.auditsUsed} / {formatLimit(limit)}</span>
+                    <span className="font-bold text-red-400">{usage.auditsUsed} / {formatLimit(limit)}</span>
                   </div>
                   <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
                     <div className="h-full bg-red-500 rounded-full w-full" />
@@ -445,12 +443,12 @@ export default function AnalyzePage() {
             </div>
           );
         })()}
-      </PageWrapper>
+      </>
     );
   }
 
   return (
-    <PageWrapper>
+    <>
       {/* Title */}
       <div className="flex items-center justify-between border-b border-zinc-900 pb-6">
         <div>
@@ -575,6 +573,6 @@ export default function AnalyzePage() {
           )}
         </div>
       </div>
-    </PageWrapper>
+    </>
   );
 }
