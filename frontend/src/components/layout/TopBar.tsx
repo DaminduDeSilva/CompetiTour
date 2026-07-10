@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Radio, CloudLightning, TrendingDown, AlertTriangle, CheckCircle, Zap } from "lucide-react";
 import { useQuota, formatLimit } from "@/lib/quota";
-
-import { createClient } from "@/utils/supabase/client";
+import { fetchCurrentUserProfile } from "@/app/(dashboard)/dashboard/actions";
 
 // TODO(backend): Fetch from GET /notifications?limit=5&unread=true
 const previewNotifications = [
@@ -36,10 +35,13 @@ export default function TopBar() {
   // Fetch dynamic user
   useEffect(() => {
     const fetchUser = async () => {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        setUser(data.user);
+      try {
+        const profileRes = await fetchCurrentUserProfile();
+        if (profileRes?.user) {
+          setUser(profileRes.user);
+        }
+      } catch (err) {
+        console.error("Failed to load user in top bar:", err);
       }
       setLoadingUser(false);
     };
@@ -157,9 +159,9 @@ export default function TopBar() {
             </div>
           ) : (
             <div className="flex flex-col text-right">
-              <span className="text-xs font-bold text-white">{user?.email || "DMC User"}</span>
-              <span className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">
-                {user ? "DMC Partner" : "Not Logged In"}
+              <span className="text-xs font-bold text-white">{user?.company_name || "DMC Partner"}</span>
+              <span className="text-[10px] text-sky-400 font-bold tracking-wider">
+                {user?.email || "Not Logged In"}
               </span>
             </div>
           )}
@@ -168,7 +170,7 @@ export default function TopBar() {
             <div className="w-9 h-9 rounded-full bg-zinc-800 animate-pulse" />
           ) : (
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-bold text-white text-xs uppercase">
-              {user?.email ? user.email.substring(0, 2) : "ME"}
+              {user?.company_name ? user.company_name.substring(0, 2) : "ME"}
             </div>
           )}
         </div>

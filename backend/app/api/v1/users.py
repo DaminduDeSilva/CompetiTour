@@ -12,6 +12,10 @@ from datetime import datetime
 
 router = APIRouter()
 
+class UserUpdate(BaseModel):
+    company_name: str | None = None
+    full_name: str | None = None
+
 class UserResponse(BaseModel):
     id: uuid.UUID
     email: str
@@ -35,6 +39,21 @@ async def get_all_users(
         raise HTTPException(status_code=403, detail="Not authorized. Admin access required.")
     result = await db.execute(select(User))
     return result.scalars().all()
+
+@router.put("/me", response_model=UserResponse)
+async def update_current_user(
+    update_data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if update_data.company_name is not None:
+        current_user.company_name = update_data.company_name
+    if update_data.full_name is not None:
+        current_user.full_name = update_data.full_name
+        
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
 
 @router.post("/{user_id}/approve")
 async def approve_user(

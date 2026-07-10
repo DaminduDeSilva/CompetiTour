@@ -16,7 +16,8 @@ import {
   ArrowRight,
   TrendingDown,
   BrainCircuit,
-  Maximize2
+  Maximize2,
+  BarChart3
 } from "lucide-react";
 
 export default function ReportHistoryPage() {
@@ -64,8 +65,9 @@ export default function ReportHistoryPage() {
       const dmcRateLkr = dmcRateUsd * EXCHANGE_RATE;
       const dmcRate = `$${Math.round(dmcRateUsd).toLocaleString()} (LKR ${Math.round(dmcRateLkr).toLocaleString()})`;
       
+      const marketPriceLkr = rep.market_assembled_price_usd * EXCHANGE_RATE;
       const marketPrice = rep.market_assembled_price_usd !== null && rep.market_assembled_price_usd !== undefined
-        ? `$${Math.round(rep.market_assembled_price_usd).toLocaleString()} (${marketInfo.curr})`
+        ? `$${Math.round(rep.market_assembled_price_usd).toLocaleString()} (LKR ${Math.round(marketPriceLkr).toLocaleString()})`
         : "N/A";
       const variance = rep.price_delta_pct !== null && rep.price_delta_pct !== undefined
         ? `${rep.price_delta_pct > 0 ? "+" : ""}${rep.price_delta_pct}%`
@@ -240,41 +242,38 @@ export default function ReportHistoryPage() {
 
   return (
     <>
-      {/* Header Back & Action Buttons */}
-      <div className="flex items-center justify-between border-b border-zinc-900 pb-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft size={16} />
-          <span>Back to Dashboard</span>
-        </Link>
+      {/* Back Button */}
+      <Link
+        href="/reports"
+        className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors mb-6"
+      >
+        <ArrowLeft size={16} />
+        <span>Back to Reports</span>
+      </Link>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={exportPDF}
-            disabled={isExporting}
-            className={`inline-flex items-center gap-1.5 text-xs font-bold ${isExporting ? "text-gray-500 cursor-not-allowed" : "text-gray-300 hover:text-white border-zinc-800 hover:border-zinc-700 bg-zinc-950/40"} border px-3 py-2 rounded-xl transition-all animate-none`}
-          >
-            {isExporting ? (
-              <span className="w-3 h-3 rounded-full border-2 border-gray-500 border-t-transparent animate-spin" />
-            ) : (
-              <Download size={14} />
-            )}
-            <span>{isExporting ? "Generating..." : "Export PDF"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Package Identifier Header (Issue #3) */}
-      <div className="mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <div>
-          <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
-            Audit Result
-          </span>
-          <h2 className="text-xl font-bold text-white mt-1">{packageData?.name}</h2>
-          <p className="text-xs text-gray-300 mt-0.5">DMC Base Price: LKR {baseLkr.toLocaleString()} (approx. ${Math.round(baseUsd).toLocaleString()})</p>
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400 flex items-center gap-3">
+            <BarChart3 size={28} className="text-sky-400" />
+            {packageData?.name || "Audit Result"}
+          </h2>
+          <p className="text-sm text-sky-200/60 mt-1 font-medium tracking-wide">
+            DMC Base Price: LKR {baseLkr.toLocaleString()} (approx. ${Math.round(baseUsd).toLocaleString()})
+          </p>
         </div>
+        <button
+          onClick={exportPDF}
+          disabled={isExporting}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 text-xs font-bold text-gray-400 hover:text-white transition-colors cursor-pointer ${isExporting ? 'opacity-50' : ''}`}
+        >
+          {isExporting ? (
+            <span className="w-3.5 h-3.5 rounded-full border-2 border-gray-500 border-t-transparent animate-spin" />
+          ) : (
+            <Download size={14} />
+          )}
+          <span>{isExporting ? "Generating..." : "Export PDF"}</span>
+        </button>
       </div>
 
       {/* Top Metrics Grid */}

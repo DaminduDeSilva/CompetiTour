@@ -57,8 +57,8 @@ export default function ReportsPage() {
                 packageName: pkg.name,
                 market: marketInfo.name,
                 marketFlag: marketInfo.flag,
-                dmc: `$${Math.round(rep.dmc_price_usd / 1.08).toLocaleString()}`,
-                marketPrice: `$${Math.round(rep.market_assembled_price_usd / 1.08).toLocaleString()}`,
+                dmc: `$${Math.round(rep.dmc_price_usd).toLocaleString()}`,
+                marketPrice: `$${Math.round(rep.market_assembled_price_usd).toLocaleString()}`,
                 variance: varianceStr,
                 status: status,
                 date: new Date(rep.generated_at).toLocaleString(),
@@ -84,6 +84,32 @@ export default function ReportsPage() {
     return matchSearch && matchFilter;
   });
 
+  const handleExportCsv = () => {
+    if (filtered.length === 0) return;
+    
+    const headers = ["Date / Time", "Package", "Market", "DMC Rate", "Market Price", "Variance", "Confidence", "Status"];
+    const rows = filtered.map(r => [
+      `"${r.date}"`,
+      `"${r.packageName}"`,
+      `"${r.market}"`,
+      `"${r.dmc}"`,
+      `"${r.marketPrice}"`,
+      `"${r.variance}"`,
+      `"${r.confidence}%"`,
+      `"${r.status}"`
+    ]);
+    
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `audit_reports_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <>
       {/* Header */}
@@ -96,8 +122,9 @@ export default function ReportsPage() {
           <p className="text-sm text-sky-200/60 mt-1 font-medium tracking-wide">{reports.length} completed audit runs across all packages</p>
         </div>
         <button
-          onClick={() => alert("Exporting all reports as CSV...")}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 text-xs font-bold text-gray-400 hover:text-white transition-colors cursor-pointer"
+          onClick={handleExportCsv}
+          disabled={filtered.length === 0}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 text-xs font-bold text-gray-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
         >
           <Download size={14} />
           <span>Export CSV</span>

@@ -282,3 +282,65 @@ export async function getLatestJobForPackage(packageId: number) {
   }
 }
 
+export async function updateUserProfile(payload: { company_name?: string, full_name?: string }) {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    return { error: 'Not authorized' }
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/v1/users/me`, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!res.ok) {
+      throw new Error('Failed to update profile')
+    }
+
+    const data = await res.json()
+    return { success: true, user: data }
+  } catch (error: any) {
+    console.error("Update profile error:", error)
+    return { error: error.message }
+  }
+}
+
+export async function changePassword(oldPassword: string, newPassword: string) {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session?.user?.email) {
+    return { error: 'Not authorized' }
+  }
+
+  // Verify old password
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: session.user.email,
+    password: oldPassword,
+  })
+
+  if (signInError) {
+    return { error: 'Invalid current password' }
+  }
+
+  // Update to new password
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPassword
+  })
+
+  if (updateError) {
+    return { error: updateError.message }
+  }
+
+  return { success: true }
+}
+
