@@ -30,7 +30,7 @@ export default function EditPackagePage() {
   const [rooms, setRooms] = useState(1);
 
   // Live Exchange Rate
-  const [exchangeRate, setExchangeRate] = useState(305);
+  const [exchangeRate, setExchangeRate] = useState(333);
 
   useEffect(() => {
     fetch("https://open.er-api.com/v6/latest/USD")
@@ -44,7 +44,16 @@ export default function EditPackagePage() {
   }, []);
 
   // Components List
-  const [components, setComponents] = useState<{ uid: number; id?: number; type: string; name: string; details: string; price: number; currency: 'USD' | 'LKR' }[]>([]);
+  interface PackageComponent {
+  uid: number;
+  id?: number;
+  type: string;
+  name: string;
+  price: number;
+  currency: 'USD' | 'LKR';
+  meta_data: any;
+}
+  const [components, setComponents] = useState<PackageComponent[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -61,15 +70,48 @@ export default function EditPackagePage() {
           setTargetDate(res.data.target_date.split('T')[0]);
         }
         
-        setComponents((res.data.components || []).map((c: any, i: number) => ({
-          uid: i + 1,
-          id: c.id,
-          type: c.component_type,
-          name: c.name,
-          details: c.nights_or_duration || "",
-          price: c.base_price_lkr,
-          currency: 'LKR'
-        })));
+        setComponents((res.data.components || []).map((c: any, i: number) => {
+          let meta = c.meta_data || {};
+          if (c.component_type === "hotel") {
+            meta = {
+              pricing_basis: "Per Room",
+              room_type: "",
+              nights: 1,
+              meal_plan: "Bed & Breakfast",
+              adults: res.data.adults || 2,
+              children: res.data.children || 0,
+              rooms: res.data.rooms || 1,
+              ...meta
+            };
+          } else if (c.component_type === "excursion") {
+            meta = {
+              pricing_basis: "Per Pax",
+              format: "Private",
+              duration: "Half-Day",
+              guide_language: "English",
+              inclusions: { entrance_fees: false, meals_included: false, hotel_pickup: false },
+              notes: "",
+              ...meta
+            };
+          } else if (c.component_type === "transfer") {
+            meta = {
+              pricing_basis: "Per Vehicle",
+              format: "Private",
+              vehicle_type: "Minivan",
+              route: "",
+              ...meta
+            };
+          }
+          return {
+            uid: i + 1,
+            id: c.id,
+            type: c.component_type,
+            name: c.name,
+            price: c.base_price_lkr,
+            currency: 'LKR',
+            meta_data: meta
+          };
+        }));
       }
       setLoading(false);
     }
@@ -82,7 +124,23 @@ export default function EditPackagePage() {
 
   const addComponent = (type: string) => {
     const newUid = components.length > 0 ? Math.max(...components.map((c) => c.uid)) + 1 : 1;
-    setComponents([...components, { uid: newUid, type, name: "", details: "", price: 0, currency: 'USD' }]);
+    let initialMeta = {};
+    if (type === "hotel") {
+      initialMeta = { 
+        pricing_basis: "Per Room", 
+        room_type: "", 
+        nights: 1, 
+        meal_plan: "Bed & Breakfast",
+        adults: 2,
+        children: 0,
+        rooms: 1
+      };
+    } else if (type === "excursion") {
+      initialMeta = { pricing_basis: "Per Pax", format: "Private", duration: "Half-Day", guide_language: "English", inclusions: { entrance_fees: false, meals_included: false, hotel_pickup: false }, notes: "" };
+    } else if (type === "transfer") {
+      initialMeta = { pricing_basis: "Per Vehicle", format: "Private", vehicle_type: "Minivan", route: "" };
+    }
+    setComponents([...components, { uid: newUid, type, name: "", price: 0, currency: 'USD', meta_data: initialMeta }]);
   };
 
   // Derive total cost
@@ -96,27 +154,76 @@ export default function EditPackagePage() {
     setSaving(true);
 
     try {
+      const firstHotel = components.find(c => c.type === "hotel");
+      const payloadAdults = firstHotel?.meta_data?.adults ?? adults;
+      const payloadChildren = firstHotel?.meta_data?.children ?? childrenCount;
+      const payloadRooms = firstHotel?.meta_data?.rooms ?? rooms;
+
       const payload = {
         name,
         destination,
         target_date: targetDate ? new Date(targetDate).toISOString() : null,
         duration_days: duration,
-        adults,
-        children: childrenCount,
-        rooms,
+        adults: payloadAdults,
+        children: payloadChildren,
+        rooms: payloadRooms,
         total_price_lkr: totalUsd * exchangeRate,
         components: components.map(c => ({
           ...(c.id ? { id: c.id } : {}),
           component_type: c.type,
           name: c.name,
-          nights_or_duration: c.details,
+          nights_or_duration: null,
+          notes: null,
+          meta_data: c.meta_data,
           base_price_lkr: c.currency === 'LKR' ? c.price : (c.price * exchangeRate),
         }))
       };
 
       const res = await updateDashboardPackage(id, payload);
 
-      if (res.success) {
+      if (res.success && res.data) {
+        setComponents((res.data.components || []).map((c: any, i: number) => {
+          let meta = c.meta_data || {};
+          if (c.component_type === "hotel") {
+            meta = {
+              pricing_basis: "Per Room",
+              room_type: "",
+              nights: 1,
+              meal_plan: "Bed & Breakfast",
+              adults: res.data.adults || 2,
+              children: res.data.children || 0,
+              rooms: res.data.rooms || 1,
+              ...meta
+            };
+          } else if (c.component_type === "excursion") {
+            meta = {
+              pricing_basis: "Per Pax",
+              format: "Private",
+              duration: "Half-Day",
+              guide_language: "English",
+              inclusions: { entrance_fees: false, meals_included: false, hotel_pickup: false },
+              notes: "",
+              ...meta
+            };
+          } else if (c.component_type === "transfer") {
+            meta = {
+              pricing_basis: "Per Vehicle",
+              format: "Private",
+              vehicle_type: "Minivan",
+              route: "",
+              ...meta
+            };
+          }
+          return {
+            uid: i + 1,
+            id: c.id,
+            type: c.component_type,
+            name: c.name,
+            price: c.base_price_lkr,
+            currency: 'LKR',
+            meta_data: meta
+          };
+        }));
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
       } else {
@@ -221,40 +328,6 @@ export default function EditPackagePage() {
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
                 />
               </div>
-
-              {/* Occupancy */}
-              <div className="grid grid-cols-3 gap-4 col-span-1 md:col-span-2">
-                <div className="flex flex-col gap-2 relative group">
-                  <label className="text-[11px] font-bold text-sky-200/70 uppercase tracking-widest transition-colors group-focus-within:text-sky-400">Adults</label>
-                  <input 
-                    type="number" 
-                    min="1"
-                    value={adults} 
-                    onChange={(e) => setAdults(Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
-                  />
-                </div>
-                <div className="flex flex-col gap-2 relative group">
-                  <label className="text-[11px] font-bold text-sky-200/70 uppercase tracking-widest transition-colors group-focus-within:text-sky-400">Children</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    value={childrenCount} 
-                    onChange={(e) => setChildrenCount(Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
-                  />
-                </div>
-                <div className="flex flex-col gap-2 relative group">
-                  <label className="text-[11px] font-bold text-sky-200/70 uppercase tracking-widest transition-colors group-focus-within:text-sky-400">Rooms</label>
-                  <input 
-                    type="number" 
-                    min="1"
-                    value={rooms} 
-                    onChange={(e) => setRooms(Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 
@@ -334,109 +407,245 @@ export default function EditPackagePage() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                    <div className="md:col-span-5 flex flex-col gap-2 relative group">
-                      <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Name</label>
-                      <input 
-                        type="text" 
-                        value={comp.name} 
-                        placeholder="Component name..."
-                        onChange={(e) => {
-                          const updated = [...components];
-                          updated[idx].name = e.target.value;
-                          setComponents(updated);
-                        }}
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
-                      />
-                    </div>
-                    <div className="md:col-span-4 flex flex-col gap-2 relative group">
-                      {comp.type === "hotel" ? (
-                        <>
-                          <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Nights / Room</label>
-                          <input 
-                            type="text" 
-                            value={comp.details} 
-                            placeholder="e.g. 2 Nights"
-                            onChange={(e) => {
-                              const updated = [...components];
-                              updated[idx].details = e.target.value;
-                              setComponents(updated);
-                            }}
-                            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
-                          />
-                        </>
-                      ) : comp.type === "excursion" ? (
-                        <>
-                          <label className="text-[11px] text-emerald-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-emerald-400">Duration / Type</label>
-                          <input 
-                            type="text" 
-                            value={comp.details} 
-                            placeholder="e.g. Full Day Safari"
-                            onChange={(e) => {
-                              const updated = [...components];
-                              updated[idx].details = e.target.value;
-                              setComponents(updated);
-                            }}
-                            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 outline-none transition-all"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <label className="text-[11px] text-purple-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-purple-400">Route / Vehicle</label>
-                          <input 
-                            type="text" 
-                            value={comp.details} 
-                            placeholder="e.g. Airport to Hotel (Minivan)"
-                            onChange={(e) => {
-                              const updated = [...components];
-                              updated[idx].details = e.target.value;
-                              setComponents(updated);
-                            }}
-                            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-purple-400 focus:ring-1 focus:ring-purple-400/50 outline-none transition-all"
-                          />
-                        </>
-                      )}
-                    </div>
-                    <div className="md:col-span-3 flex flex-col gap-2 relative group">
-                      <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Base Price</label>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => {
-                             const updated = [...components];
-                             updated[idx].currency = comp.currency === 'USD' ? 'LKR' : 'USD';
-                             setComponents(updated);
-                          }}
-                          className="absolute left-1 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-white/10 text-xs font-black text-sky-400/80 transition-colors z-10 cursor-pointer"
-                        >
-                          {comp.currency === 'USD' ? '$' : 'Rs'}
-                          <span className="text-[8px] opacity-50">▾</span>
-                        </button>
-                        <input 
-                          type="number" 
-                          min="0"
-                          value={comp.price || ""} 
-                          placeholder="0.00"
-                          onChange={(e) => {
-                            const updated = [...components];
-                            updated[idx].price = Number(e.target.value);
-                            setComponents(updated);
-                          }}
-                          className="w-full pl-14 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/50 outline-none transition-all"
-                        />
-                      </div>
-                      {comp.price > 0 && (
-                        <div className="absolute -bottom-6 left-1 text-[10px] font-bold text-sky-300/50">
-                          {comp.currency === 'USD' 
-                            ? `≈ ${(comp.price * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 0 })} LKR`
-                            : `≈ $${(comp.price / exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD`
-                          }
-                        </div>
-                      )}
-                    </div>
+                  <div className="flex flex-col gap-6">
+                                          {/* HOTEL COMPONENT */}
+                                          {comp.type === "hotel" && (
+                                            <>
+                                              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                                <div className="md:col-span-8 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Hotel Name</label>
+                                                  <input type="text" value={comp.name} placeholder="e.g. Marino Beach" onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].name = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-sky-400 outline-none" />
+                                                </div>
+                                                
+                                                {/* Base Price (Row 1) */}
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">
+                                                    Price ({comp.meta_data.pricing_basis})
+                                                  </label>
+                                                  <div className="relative">
+                                                    <button type="button" onClick={() => {
+                                                       const updated = [...components]; updated[idx].currency = comp.currency === 'USD' ? 'LKR' : 'USD'; setComponents(updated);
+                                                    }} className="absolute left-1 top-1/2 -translate-y-1/2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-xs font-black text-white/80 transition-colors z-10">
+                                                      {comp.currency === 'USD' ? '$' : 'Rs'} <span className="text-[8px] opacity-50">▾</span>
+                                                    </button>
+                                                    <input type="number" min="0" value={comp.price || ""} placeholder="0.00" onChange={(e) => {
+                                                      const updated = [...components]; updated[idx].price = Number(e.target.value); setComponents(updated);
+                                                    }} className="w-full pl-10 pr-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-sky-400 outline-none transition-all" />
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Room Type</label>
+                                                  <input type="text" value={comp.meta_data.room_type} placeholder="e.g. Deluxe Double" onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.room_type = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-sky-400 outline-none" />
+                                                </div>
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Nights</label>
+                                                  <input type="number" min="1" value={comp.meta_data.nights} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.nights = Number(e.target.value); setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-sky-400 outline-none" />
+                                                </div>
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Meal Plan</label>
+                                                  <select value={comp.meta_data.meal_plan} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.meal_plan = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-sky-400 outline-none appearance-none">
+                                                    <option value="Room Only" className="bg-[#0a0a0e]">Room Only</option>
+                                                    <option value="Bed & Breakfast" className="bg-[#0a0a0e]">Bed & Breakfast</option>
+                                                    <option value="Half Board" className="bg-[#0a0a0e]">Half Board</option>
+                                                    <option value="Full Board" className="bg-[#0a0a0e]">Full Board</option>
+                                                    <option value="All Inclusive" className="bg-[#0a0a0e]">All Inclusive</option>
+                                                  </select>
+                                                </div>
+                                              </div>
+
+                                              {/* Occupancy (Row 3) */}
+                                              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start mt-2">
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Adults</label>
+                                                  <input type="number" min="1" value={comp.meta_data.adults || 2} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data = { ...updated[idx].meta_data, adults: Number(e.target.value) }; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-sky-400 outline-none" />
+                                                </div>
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Children</label>
+                                                  <input type="number" min="0" value={comp.meta_data.children || 0} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data = { ...updated[idx].meta_data, children: Number(e.target.value) }; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-sky-400 outline-none" />
+                                                </div>
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-sky-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-sky-400">Rooms</label>
+                                                  <input type="number" min="1" value={comp.meta_data.rooms || 1} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data = { ...updated[idx].meta_data, rooms: Number(e.target.value) }; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-sky-400 outline-none" />
+                                                </div>
+                                              </div>
+                                            </>
+                                          )}
+
+                                          {/* TRANSFER COMPONENT */}
+                                          {comp.type === "transfer" && (
+                                            <>
+                                              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                                <div className="md:col-span-8 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-purple-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-purple-400">Transfer Name</label>
+                                                  <input type="text" value={comp.name} placeholder="e.g. Airport Pickup" onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].name = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-400 outline-none" />
+                                                </div>
+
+                                                {/* Base Price (Row 1) */}
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-purple-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-purple-400">
+                                                    Price ({comp.meta_data.pricing_basis})
+                                                  </label>
+                                                  <div className="relative">
+                                                    <button type="button" onClick={() => {
+                                                       const updated = [...components]; updated[idx].currency = comp.currency === 'USD' ? 'LKR' : 'USD'; setComponents(updated);
+                                                    }} className="absolute left-1 top-1/2 -translate-y-1/2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-xs font-black text-white/80 transition-colors z-10">
+                                                      {comp.currency === 'USD' ? '$' : 'Rs'} <span className="text-[8px] opacity-50">▾</span>
+                                                    </button>
+                                                    <input type="number" min="0" value={comp.price || ""} placeholder="0.00" onChange={(e) => {
+                                                      const updated = [...components]; updated[idx].price = Number(e.target.value); setComponents(updated);
+                                                    }} className="w-full pl-10 pr-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-400 outline-none transition-all" />
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-purple-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-purple-400">Route</label>
+                                                  <input type="text" value={comp.meta_data.route} placeholder="e.g. CMB to Colombo" onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.route = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-400 outline-none" />
+                                                </div>
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-purple-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-purple-400">Vehicle Type</label>
+                                                  <select value={comp.meta_data.vehicle_type} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.vehicle_type = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-400 outline-none appearance-none">
+                                                    <option value="Car" className="bg-[#0a0a0e]">Car</option>
+                                                    <option value="Minivan" className="bg-[#0a0a0e]">Minivan</option>
+                                                    <option value="SUV" className="bg-[#0a0a0e]">SUV</option>
+                                                    <option value="Coach Bus" className="bg-[#0a0a0e]">Coach Bus</option>
+                                                    <option value="Tuk-Tuk" className="bg-[#0a0a0e]">Tuk-Tuk</option>
+                                                  </select>
+                                                </div>
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-purple-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-purple-400">Format</label>
+                                                  <select value={comp.meta_data.format} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.format = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-400 outline-none appearance-none">
+                                                    <option value="Private" className="bg-[#0a0a0e]">Private</option>
+                                                    <option value="SIC (Shared)" className="bg-[#0a0a0e]">SIC (Shared)</option>
+                                                  </select>
+                                                </div>
+                                              </div>
+                                            </>
+                                          )}
+
+                                          {/* EXCURSION COMPONENT */}
+                                          {comp.type === "excursion" && (
+                                            <>
+                                              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                                <div className="md:col-span-8 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-emerald-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-emerald-400">Activity Name</label>
+                                                  <input type="text" value={comp.name} placeholder="e.g. City Tour" onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].name = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-emerald-400 outline-none" />
+                                                </div>
+
+                                                {/* Base Price (Row 1) */}
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-emerald-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-emerald-400">
+                                                    Price ({comp.meta_data.pricing_basis})
+                                                  </label>
+                                                  <div className="relative">
+                                                    <button type="button" onClick={() => {
+                                                       const updated = [...components]; updated[idx].currency = comp.currency === 'USD' ? 'LKR' : 'USD'; setComponents(updated);
+                                                    }} className="absolute left-1 top-1/2 -translate-y-1/2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-xs font-black text-white/80 transition-colors z-10">
+                                                      {comp.currency === 'USD' ? '$' : 'Rs'} <span className="text-[8px] opacity-50">▾</span>
+                                                    </button>
+                                                    <input type="number" min="0" value={comp.price || ""} placeholder="0.00" onChange={(e) => {
+                                                      const updated = [...components]; updated[idx].price = Number(e.target.value); setComponents(updated);
+                                                    }} className="w-full pl-10 pr-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-emerald-400 outline-none transition-all" />
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-emerald-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-emerald-400">Format</label>
+                                                  <select value={comp.meta_data.format} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.format = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-emerald-400 outline-none appearance-none">
+                                                    <option value="Private" className="bg-[#0a0a0e]">Private</option>
+                                                    <option value="SIC (Shared)" className="bg-[#0a0a0e]">SIC (Shared)</option>
+                                                  </select>
+                                                </div>
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-emerald-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-emerald-400">Duration</label>
+                                                  <select value={comp.meta_data.duration} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.duration = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-emerald-400 outline-none appearance-none">
+                                                    <option value="< 2 Hours" className="bg-[#0a0a0e]">&lt; 2 Hours</option>
+                                                    <option value="Half-Day" className="bg-[#0a0a0e]">Half-Day</option>
+                                                    <option value="Full-Day" className="bg-[#0a0a0e]">Full-Day</option>
+                                                    <option value="Multi-Day" className="bg-[#0a0a0e]">Multi-Day</option>
+                                                  </select>
+                                                </div>
+                                                <div className="md:col-span-4 flex flex-col gap-2 relative group">
+                                                  <label className="text-[11px] text-emerald-200/70 uppercase font-bold tracking-widest transition-colors group-focus-within:text-emerald-400">Guide</label>
+                                                  <select value={comp.meta_data.guide_language} onChange={(e) => {
+                                                    const updated = [...components]; updated[idx].meta_data.guide_language = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-emerald-400 outline-none appearance-none">
+                                                    <option value="None" className="bg-[#0a0a0e]">None</option>
+                                                    <option value="Driver-Guide" className="bg-[#0a0a0e]">Driver-Guide</option>
+                                                    <option value="English" className="bg-[#0a0a0e]">English Guide</option>
+                                                    <option value="German" className="bg-[#0a0a0e]">German Guide</option>
+                                                    <option value="Russian" className="bg-[#0a0a0e]">Russian Guide</option>
+                                                    <option value="French" className="bg-[#0a0a0e]">French Guide</option>
+                                                    <option value="Other" className="bg-[#0a0a0e]">Other</option>
+                                                  </select>
+                                                </div>
+
+                                                {/* Excursion Toggles & Notes */}
+                                                <div className="md:col-span-12 flex flex-col gap-4 bg-white/5 p-4 rounded-xl border border-white/5 mt-2">
+                                                  <div className="flex items-center gap-6">
+                                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-emerald-100">
+                                                      <input type="checkbox" checked={comp.meta_data.inclusions?.entrance_fees || false} onChange={(e) => {
+                                                        const updated = [...components]; updated[idx].meta_data.inclusions = {...updated[idx].meta_data.inclusions, entrance_fees: e.target.checked}; setComponents(updated);
+                                                      }} className="w-4 h-4 rounded accent-emerald-500 bg-white/10 border-white/20" />
+                                                      Entrance Fees Included
+                                                    </label>
+                                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-emerald-100">
+                                                      <input type="checkbox" checked={comp.meta_data.inclusions?.meals_included || false} onChange={(e) => {
+                                                        const updated = [...components]; updated[idx].meta_data.inclusions = {...updated[idx].meta_data.inclusions, meals_included: e.target.checked}; setComponents(updated);
+                                                      }} className="w-4 h-4 rounded accent-emerald-500 bg-white/10 border-white/20" />
+                                                      Meals/Snacks Included
+                                                    </label>
+                                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-emerald-100">
+                                                      <input type="checkbox" checked={comp.meta_data.inclusions?.hotel_pickup || false} onChange={(e) => {
+                                                        const updated = [...components]; updated[idx].meta_data.inclusions = {...updated[idx].meta_data.inclusions, hotel_pickup: e.target.checked}; setComponents(updated);
+                                                      }} className="w-4 h-4 rounded accent-emerald-500 bg-white/10 border-white/20" />
+                                                      Hotel Pickup/Drop-off
+                                                    </label>
+                                                  </div>
+                                                  <input type="text" value={comp.meta_data.notes || ''} placeholder="Additional notes (e.g. Sigiriya ticket excluded)..." onChange={(e) => {
+                                                     const updated = [...components]; updated[idx].meta_data.notes = e.target.value; setComponents(updated);
+                                                  }} className="w-full px-4 py-2.5 rounded-lg bg-[#0a0a0e]/50 border border-white/10 text-sm text-white focus:border-emerald-400 outline-none" />
+                                                </div>
+                                              </div>
+                                            </>
+                                          )}
+                                        </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         </div>

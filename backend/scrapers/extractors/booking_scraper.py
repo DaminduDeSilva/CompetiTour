@@ -147,7 +147,7 @@ class BookingComScraper:
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 })
                 logger.info(f"[Booking.com] Navigating via {proxy_type} proxy...")
-                await page.goto(url, wait_until="commit", timeout=15000)
+                await page.goto(url, wait_until="commit", timeout=30000)
                 used_proxy = proxy_type
                 
                 # Handle consent/cookie banner if present (common on EU locales)
@@ -162,16 +162,16 @@ class BookingComScraper:
 
                 # Wait for property cards to load
                 try:
-                    el = await page.wait_for_selector('[data-testid="property-card"], #challenge-container', timeout=15000)
+                    el = await page.wait_for_selector('[data-testid="property-card"], #challenge-container', timeout=30000)
                     if await el.get_attribute("id") == "challenge-container":
                         logger.info("[Booking.com] WAF challenge detected. Waiting for it to resolve...")
-                        await page.wait_for_selector('[data-testid="property-card"]', timeout=15000)
+                        await page.wait_for_selector('[data-testid="property-card"]', timeout=30000)
                     logger.info("[Booking.com] Property cards loaded.")
                 except Exception as e:
                     # Check if we were blocked or got a captcha
                     try:
                         html = await page.content()
-                        block_indicators = ["access denied", "pardon our interruption", "robot check", "security challenge", "automated agent", "verify you are a human", "press & hold", "press and hold", "something went wrong"]
+                        block_indicators = ["access denied", "pardon our interruption", "robot check", "security challenge", "automated agent", "verify you are a human", "press & hold", "press and hold"]
                         is_blocked = any(ind in html.lower() for ind in block_indicators) or len(html) < 5000
                         if is_blocked:
                             title = await page.title()

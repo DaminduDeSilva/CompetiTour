@@ -13,15 +13,13 @@ import {
 } from "@/lib/quota";
 
 const FEATURES: { label: string; free: string; starter: string; professional: string; enterprise: string }[] = [
-  { label: "Audits / Month",      free: "3",          starter: "10",         professional: "50",        enterprise: "Unlimited" },
-  { label: "Packages",            free: "2",          starter: "5",          professional: "25",        enterprise: "Unlimited" },
-  { label: "Source Markets",      free: "1",          starter: "2",          professional: "5",         enterprise: "Unlimited" },
-  { label: "OTA Platforms",       free: "2",          starter: "3",          professional: "All 4",     enterprise: "All 4" },
-  { label: "AI Matching (LLM)",   free: "BGE-M3 only",starter: "Gemini Flash",professional: "Gemini Pro", enterprise: "Custom Model" },
-  { label: "Proxy Type",          free: "Shared",     starter: "Residential", professional: "Dual-Proxy", enterprise: "Dedicated" },
-  { label: "PDF Reports",         free: "—",          starter: "✓",          professional: "✓",         enterprise: "✓ + White-label" },
-  { label: "Support",             free: "Community",  starter: "Email",      professional: "Priority",  enterprise: "Dedicated CSM" },
+  { label: "Audits / Month",   free: "3",           starter: "10",    professional: "50",       enterprise: "Unlimited" },
+  { label: "Packages",         free: "2",           starter: "5",     professional: "25",       enterprise: "Unlimited" },
+  { label: "Source Markets",   free: "1",           starter: "2",     professional: "5",        enterprise: "Unlimited" },
+  { label: "OTA Platforms",    free: "Booking.com", starter: "Booking.com", professional: "Booking.com", enterprise: "Booking.com + more" },
+  { label: "PDF Reports",      free: "—",           starter: "✓",     professional: "✓",        enterprise: "✓ + White-label" },
 ];
+
 
 const colorMap: Record<string, { ring: string; badge: string; btn: string; accent: string; bar: string }> = {
   zinc:    { ring: "border-zinc-700",           badge: "text-gray-400 bg-zinc-800 border-zinc-700",      btn: "bg-zinc-800 hover:bg-zinc-700 text-white",                    accent: "text-gray-300", bar: "bg-zinc-600" },
@@ -61,12 +59,13 @@ function PlanCard({ plan, isCurrent, usedPct, auditsUsed }: { plan: Plan; isCurr
           { icon: <FolderOpen size={12} />, label: `${formatLimit(plan.packages)} packages` },
           { icon: <Globe size={12} />, label: `${formatLimit(plan.markets)} source markets` },
         ].map((f) => (
-          <div key={f.label} className="flex items-center gap-2 text-gray-300">
-            <span className={c.accent}>{f.icon}</span>
+          <div key={f.label} className="flex items-center gap-2 text-gray-500">
+            <span className="text-gray-600">{f.icon}</span>
             {f.label}
           </div>
         ))}
       </div>
+
 
       {/* Usage bar if current */}
       {isCurrent && limit !== Infinity && (
@@ -172,30 +171,37 @@ export default function BillingPage() {
               <span key={p.id} className={`text-center ${p.id === usage.planId ? "text-indigo-300" : ""}`}>{p.name}</span>
             ))}
           </div>
-          {FEATURES.map((row, idx) => (
-            <div
-              key={row.label}
-              className={`grid grid-cols-5 px-6 py-3 text-xs ${idx % 2 === 0 ? "bg-zinc-950/20" : ""} border-b border-zinc-900/50 last:border-0`}
-            >
-              <span className="text-gray-300 font-medium">{row.label}</span>
-              {[row.free, row.starter, row.professional, row.enterprise].map((val, i) => {
-                const planId = PLANS[i].id;
-                const isCurrent = planId === usage.planId;
-                return (
-                  <span
-                    key={i}
-                    className={`text-center font-medium ${
-                      val === "—" ? "text-zinc-700" :
-                      val === "✓" || val.startsWith("✓") ? "text-emerald-400" :
-                      isCurrent ? "text-white" : "text-gray-400"
-                    }`}
-                  >
-                    {val}
-                  </span>
-                );
-              })}
-            </div>
-          ))}
+          {FEATURES.map((row, idx) => {
+            const planIds = ["free", "starter", "professional", "enterprise"];
+            const currentPlanIdx = planIds.indexOf(usage.planId);
+            const vals = [row.free, row.starter, row.professional, row.enterprise];
+            return (
+              <div
+                key={row.label}
+                className={`grid grid-cols-5 px-6 py-3 text-xs ${idx % 2 === 0 ? "bg-zinc-950/20" : ""} border-b border-zinc-900/50 last:border-0`}
+              >
+                <span className="text-gray-300 font-medium">{row.label}</span>
+                {vals.map((val, i) => {
+                  const isCurrent = PLANS[i].id === usage.planId;
+                  const isLower = i < currentPlanIdx;
+                  return (
+                    <span
+                      key={i}
+                      className={`text-center font-medium ${
+                        val === "—" ? "text-zinc-700" :
+                        isLower ? "text-zinc-600" :
+                        val === "✓" || val.startsWith("✓") ? "text-emerald-400" :
+                        isCurrent ? "text-white" : "text-gray-400"
+                      }`}
+                    >
+                      {val}
+                    </span>
+                  );
+                })}
+              </div>
+            );
+          })}
+
         </div>
       </div>
 

@@ -17,7 +17,10 @@ import {
   Play,
   MapPin,
   XCircle,
-  Zap
+  Zap,
+  Hotel,
+  Compass,
+  Navigation
 } from "lucide-react";
 import Link from "next/link";
 import { useQuota, formatLimit } from "@/lib/quota";
@@ -41,6 +44,7 @@ export default function AnalyzePage() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [finished, setFinished] = useState(false);
   const [selectedMarkets, setSelectedMarkets] = useState<string[]>(["DE"]);
+  const [selectedComponentIds, setSelectedComponentIds] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [realLogs, setRealLogs] = useState<string[]>(["[System] Audit job configured and initializing..."]);
   const { usage, plan, limit, exhausted } = useQuota();
@@ -123,6 +127,7 @@ export default function AnalyzePage() {
         const { data, error } = await fetchDashboardPackage(params.id as string);
         if (data) {
           setPackageData(data);
+          setSelectedComponentIds(data.components?.map((c: any) => c.id) || []);
         }
         setIsLoadingPackage(false);
       }
@@ -226,6 +231,8 @@ export default function AnalyzePage() {
   }
 
   if (isConfiguring) {
+    const hasSelectedHotel = packageData?.components?.some((c: any) => c.component_type === 'hotel' && selectedComponentIds.includes(c.id));
+
     return (
       <>
         {/* Header */}
@@ -238,104 +245,19 @@ export default function AnalyzePage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-6">
-          {/* Left Column: Form Config */}
+          {/* Left Column: Package Details & Run */}
           <div className="lg:col-span-8 flex flex-col gap-6">
-            <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Globe size={16} className="text-sky-400" />
-                Target Source Markets
-              </h3>
-              <p className="text-xs text-gray-400 -mt-3">Select which source market prices you want to audit against local OTA listings.</p>
-              
-              <div className="text-[10px] text-sky-400/90 bg-sky-500/10 border border-sky-500/20 rounded-lg p-2 -mt-1">
-                <strong>Note:</strong> Each selected source market counts as 1 audit against your monthly quota.
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {[
-                  { code: "DE", name: "Germany", flag: "🇩🇪" },
-                  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
-                  { code: "AU", name: "Australia", flag: "🇦🇺" },
-                  { code: "FR", name: "France", flag: "🇫🇷" },
-                  { code: "US", name: "United States", flag: "🇺🇸" },
-                  { code: "JP", name: "Japan", flag: "🇯🇵" },
-                ].map((m) => (
-                  <label key={m.code} className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/10 cursor-pointer hover:border-zinc-700 transition-colors">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedMarkets.includes(m.code)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedMarkets([...selectedMarkets, m.code]);
-                        } else {
-                          setSelectedMarkets(selectedMarkets.filter(c => c !== m.code));
-                        }
-                      }}
-                      className="rounded border-zinc-700 bg-zinc-950 text-sky-500 focus:ring-sky-500/20"
-                    />
-                    <span className="text-xs text-gray-300 flex items-center gap-1.5">
-                      <span>{m.flag}</span> {m.name}
-                    </span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="h-px bg-zinc-900 my-2" />
-
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <FileText size={16} className="text-emerald-400" />
-                OTA Platforms to Audit
-              </h3>
-              <p className="text-xs text-gray-400 -mt-3">Scrape public retail listings from the selected travel platforms.</p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { id: "booking", name: "Booking.com", checked: true },
-                  { id: "agoda", name: "Agoda", checked: true },
-                ].map((platform) => (
-                  <label key={platform.id} className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/10 cursor-pointer hover:border-zinc-700 transition-colors">
-                    <input 
-                      type="checkbox" 
-                      defaultChecked={platform.checked}
-                      className="rounded border-zinc-700 bg-zinc-950 text-sky-500 focus:ring-sky-500/20"
-                    />
-                    <span className="text-xs text-gray-300">{platform.name}</span>
-                  </label>
-                ))}
-              </div>
-
-
-            </div>
-          </div>
-
-          {/* Right Column: Package Details & Run */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
             <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
               <div>
                 <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded uppercase">Target Package</span>
                 <h3 className="text-base font-bold text-white mt-2">{packageData?.name || "Loading..."}</h3>
-                <p className="text-xs text-gray-300 mt-1">{packageData?.duration_days} Days · {packageData?.destination} · ${packageData?.total_price_lkr} USD</p>
-                
-                {packageData && (
+                <p className="text-xs text-gray-300 mt-1">{packageData?.duration_days} Days · {packageData?.destination}</p>
+                {packageData && packageData.target_date && (
                   <div className="mt-3 flex items-center gap-3 text-[11px] font-medium text-gray-400 bg-black/20 p-2.5 rounded-lg border border-white/5">
                     <div className="flex flex-col">
-                      <span className="text-gray-500 uppercase text-[9px] font-bold tracking-wider">Occupancy</span>
-                      <span>{packageData.adults || 2} Adults, {packageData.children || 0} Children</span>
+                      <span className="text-gray-500 uppercase text-[9px] font-bold tracking-wider">Target Date</span>
+                      <span>{new Date(packageData.target_date).toLocaleDateString()}</span>
                     </div>
-                    <div className="w-px h-6 bg-white/10 mx-1" />
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 uppercase text-[9px] font-bold tracking-wider">Rooms</span>
-                      <span>{packageData.rooms || 1} Room(s)</span>
-                    </div>
-                    {packageData.target_date && (
-                      <>
-                        <div className="w-px h-6 bg-white/10 mx-1" />
-                        <div className="flex flex-col">
-                          <span className="text-gray-500 uppercase text-[9px] font-bold tracking-wider">Target Date</span>
-                          <span>{new Date(packageData.target_date).toLocaleDateString()}</span>
-                        </div>
-                      </>
-                    )}
                   </div>
                 )}
               </div>
@@ -344,16 +266,87 @@ export default function AnalyzePage() {
 
               <div className="flex flex-col gap-3">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider">Itinerary Components</h4>
-                <div className="flex flex-col gap-2.5">
-                  {packageData?.components?.map((c: any) => (
-                    <div key={c.id} className="flex items-center gap-2 text-xs text-gray-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
-                      <span>{c.name} ({c.nights_or_duration})</span>
-                    </div>
-                  ))}
-                  {(!packageData?.components || packageData.components.length === 0) && (
-                    <span className="text-xs text-gray-500 italic">No components defined.</span>
-                  )}
+                <p className="text-[10px] text-gray-400 -mt-2">Select the components you want to include in this audit.</p>
+                <div className="flex flex-col gap-3 mt-1">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-white">All Components</span>
+                    <label className="flex items-center gap-1.5 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={packageData?.components?.length > 0 && selectedComponentIds.length === packageData?.components?.length}
+                        ref={input => {
+                          if (input) input.indeterminate = selectedComponentIds.length > 0 && selectedComponentIds.length < (packageData?.components?.length || 0);
+                        }}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedComponentIds(packageData?.components?.map((c: any) => c.id) || []);
+                          } else {
+                            setSelectedComponentIds([]);
+                          }
+                        }}
+                        className="rounded border-zinc-700 bg-zinc-950 focus:ring-1 focus:ring-opacity-20 text-sky-500 focus:ring-sky-500"
+                      />
+                      <span className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors">Select All</span>
+                    </label>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {packageData?.components?.map((c: any) => {
+                      const isSelected = selectedComponentIds.includes(c.id);
+                      
+                      const colorText = c.component_type === 'hotel' ? 'text-sky-500' : c.component_type === 'transfer' ? 'text-purple-500' : 'text-emerald-500';
+                      const colorBg = c.component_type === 'hotel' ? 'bg-sky-500' : c.component_type === 'transfer' ? 'bg-purple-500' : 'bg-emerald-500';
+                      const colorRing = c.component_type === 'hotel' ? 'focus:ring-sky-500' : c.component_type === 'transfer' ? 'focus:ring-purple-500' : 'focus:ring-emerald-500';
+                      const lightBoxClass = c.component_type === 'hotel' ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : c.component_type === 'transfer' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+                      
+                      return (
+                        <label key={c.id} className={`p-4 rounded-2xl bg-[#0a0a0e]/40 border ${isSelected ? 'border-white/20 bg-[#0a0a0e]/80 shadow-lg shadow-black/20' : 'border-white/5'} flex items-center gap-4 group relative overflow-hidden transition-all hover:bg-[#0a0a0e]/60 hover:border-white/10 cursor-pointer`}>
+                          
+                          {/* Accent Color Strip */}
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${isSelected ? colorBg : 'bg-zinc-800'} transition-colors`} />
+
+                          {/* Checkbox */}
+                          <div className="pl-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedComponentIds(prev => [...prev, c.id]);
+                                } else {
+                                  setSelectedComponentIds(prev => prev.filter(id => id !== c.id));
+                                }
+                              }}
+                              className={`w-4 h-4 rounded border-zinc-700 bg-zinc-950 focus:ring-1 focus:ring-opacity-20 ${colorText} ${colorRing} transition-all`}
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${lightBoxClass} transition-all ${!isSelected && 'opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100'}`}>
+                              {c.component_type === "hotel" ? <Hotel size={18} /> : c.component_type === "excursion" ? <Compass size={18} /> : <Navigation size={18} />}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-zinc-400'} group-hover:text-white transition-colors`}>{c.name}</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-black">{c.component_type}</span>
+                                {c.nights_or_duration && (
+                                  <>
+                                    <span className="w-1 h-1 rounded-full bg-zinc-700" />
+                                    <span className="text-[10px] text-zinc-400 font-medium">{c.nights_or_duration}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                    {(!packageData?.components || packageData.components.length === 0) && (
+                      <div className="py-8 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-2xl bg-white/5 opacity-60">
+                        <span className="text-sm font-bold text-white tracking-wide">No components defined.</span>
+                        <span className="text-xs text-zinc-500 mt-1">This package has no inclusions.</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -363,13 +356,17 @@ export default function AnalyzePage() {
                   if (exhausted) {
                     setShowQuotaGate(true);
                   } else {
-                    if (selectedMarkets.length === 0) {
-                      alert("Please select at least one source market.");
+                    if (hasSelectedHotel && selectedMarkets.length === 0) {
+                      alert("Please select at least one source market for the selected hotels.");
+                      return;
+                    }
+                    if (selectedComponentIds.length === 0) {
+                      alert("Please select at least one component to audit.");
                       return;
                     }
                     setIsSubmitting(true);
                     try {
-                      const res = await runPackageAudit(Number(params.id), selectedMarkets);
+                      const res = await runPackageAudit(Number(params.id), selectedMarkets, selectedComponentIds);
                       if (res.success && res.data) {
                         setActiveJobId(res.data.id);
                         setIsConfiguring(false);
@@ -389,6 +386,58 @@ export default function AnalyzePage() {
                 <span>{isSubmitting ? "Queueing Audits..." : "Start Real-Time AI Audit"}</span>
               </button>
             </div>
+          </div>
+
+          {/* Right Column: Source Markets Config */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            {hasSelectedHotel && (
+              <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-6">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Globe size={16} className="text-sky-400" />
+                Target Source Markets
+              </h3>
+              <p className="text-xs text-gray-400 -mt-3">Select which source market prices you want to audit against local OTA listings.</p>
+              
+              <div className="text-[10px] text-sky-400/90 bg-sky-500/10 border border-sky-500/20 rounded-lg p-2 -mt-1">
+                <strong>Note:</strong> Each selected source market counts as 1 audit against your monthly quota.
+              </div>
+              
+              <div className="grid grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+                {[
+                  { code: "DE", name: "Germany", flag: "🇩🇪" },
+                  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
+                  { code: "AU", name: "Australia", flag: "🇦🇺" },
+                  { code: "FR", name: "France", flag: "🇫🇷" },
+                  { code: "US", name: "United States", flag: "🇺🇸" },
+                  { code: "JP", name: "Japan", flag: "🇯🇵" },
+                ].map((m) => {
+                  const isSelected = selectedMarkets.includes(m.code);
+                  return (
+                  <label key={m.code} className={`flex items-center gap-3 p-3 rounded-xl border ${isSelected ? 'border-sky-500/40 bg-sky-500/10 shadow-lg shadow-sky-900/10' : 'border-zinc-800 bg-[#0a0a0e]/40'} cursor-pointer hover:border-sky-500/20 hover:bg-sky-500/5 transition-all group`}>
+                    <input 
+                      type="checkbox" 
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedMarkets([...selectedMarkets, m.code]);
+                        } else {
+                          setSelectedMarkets(selectedMarkets.filter(c => c !== m.code));
+                        }
+                      }}
+                      className="rounded border-zinc-700 bg-zinc-950 text-sky-500 focus:ring-sky-500/20 transition-all"
+                    />
+                    <div className="flex items-center gap-2.5">
+                      <div className={`text-base flex items-center justify-center w-7 h-7 rounded border ${isSelected ? 'border-sky-500/40 bg-sky-500/20' : 'border-white/10 bg-white/5'} transition-colors`}>{m.flag}</div>
+                      <div className="flex flex-col">
+                        <span className={`text-[9px] font-black tracking-widest uppercase ${isSelected ? 'text-sky-400' : 'text-zinc-500'} transition-colors`}>{m.code}</span>
+                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-zinc-400'} group-hover:text-zinc-200 transition-colors -mt-0.5`}>{m.name}</span>
+                      </div>
+                    </div>
+                  </label>
+                )})}
+              </div>
+              </div>
+            )} 
           </div>
         </div>
 

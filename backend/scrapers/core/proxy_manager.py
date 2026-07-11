@@ -45,47 +45,15 @@ def get_residential_proxy(country_code: str, sticky: bool = False, session_id: s
     
     import random
     
-    # Regional Gateway Selection with new unbanned sessions
-    if cc_upper == "JP":
-        host = "geoxasia.x.proxiess.com"
-        port = 6013
-        cc_format = "jp"
-        good_sessions = ["mwlqite8", "sul9w3e1"]
-    elif cc_upper == "GB":
-        host = "ukx.x.proxiess.com"
-        port = 6003
-        cc_format = "gbx"
-        good_sessions = ["697yuz1q", "78p95v94"]
-    elif cc_upper == "US":
-        host = "usax.x.proxiess.com"
-        port = 6000
-        cc_format = "usx"
-        good_sessions = ["jtolvmk2", "a3drohyu"]
-    elif cc_upper == "AU":
-        host = "aux.x.proxiess.com"
-        port = 6002
-        cc_format = "aux"
-        good_sessions = ["k16i05uc", "t8res7k0"]
-    elif cc_upper == "DE":
-        host = "dex.x.proxiess.com"
-        port = 6006
-        cc_format = "dex"
-        good_sessions = ["9j1rpjq8", "1pv9yu4c"]
-    else:
-        host = settings.TORCH_GATEWAY_HOST
-        port = settings.TORCH_GATEWAY_PORT
-        cc_format = country_code.lower()
-        good_sessions = None
+    # Use the default gateway host and port for all countries since regional gateways are unstable/timing out.
+    host = settings.TORCH_GATEWAY_HOST
+    port = settings.TORCH_GATEWAY_PORT
+    cc_format = country_code.lower()
 
-    password = f"{password}-country-{cc_format}"
-    
     if not session_id:
-        if good_sessions:
-            session_id = random.choice(good_sessions)
-        else:
-            session_id = str(random.randint(10000000, 99999999))
+        session_id = str(random.randint(10000000, 99999999))
             
-    password = f"{password}_session-{session_id}"
+    password = f"{password}-country-{cc_format}_session-{session_id}"
         
     # Append Xtreame Speed and Auth flags for maximum reliability
     # password = f"{password}_lifetime-1h_streaming-1_skipispstatic-1_direct-1"

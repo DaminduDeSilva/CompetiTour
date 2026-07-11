@@ -1,6 +1,6 @@
 """Package component model — hotels, transfers, excursions within a package."""
 
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -17,6 +17,7 @@ class PackageComponent(Base):
     nights_or_duration = Column(String)
     base_price_lkr = Column(Numeric(12, 2))
     notes = Column(String)
+    meta_data = Column(JSON, nullable=True)
 
     # Relationships
     package = relationship("DMCPackage", back_populates="components")

@@ -9,6 +9,7 @@ class ComponentCreate(BaseModel):
     nights_or_duration: Optional[str] = None
     base_price_lkr: float
     notes: Optional[str] = None
+    meta_data: Optional[dict] = None
 
 class ComponentUpdate(BaseModel):
     id: Optional[int] = None
@@ -18,6 +19,7 @@ class ComponentUpdate(BaseModel):
     nights_or_duration: Optional[str] = None
     base_price_lkr: float
     notes: Optional[str] = None
+    meta_data: Optional[dict] = None
 
 class PackageCreate(BaseModel):
     name: str
@@ -59,6 +61,7 @@ class OTAListingResponse(BaseModel):
 class ComponentMatchResponse(BaseModel):
     id: int
     package_component_id: int
+    report_id: Optional[int] = None
     ota_listing_id: Optional[int] = None
     confidence: float
     match_method: str
@@ -77,13 +80,17 @@ class ComponentResponse(BaseModel):
     nights_or_duration: Optional[str] = None
     base_price_lkr: float
     notes: Optional[str] = None
+    meta_data: Optional[dict] = None
     matches: List[ComponentMatchResponse] = []
 
     class Config:
         from_attributes = True
 
+from uuid import UUID
+
 class CompetitivenessReportResponse(BaseModel):
     id: int
+    job_id: Optional[UUID] = None
     package_id: int
     source_market_id: Optional[int] = None
     dmc_price_usd: float
@@ -91,6 +98,7 @@ class CompetitivenessReportResponse(BaseModel):
     price_delta_pct: Optional[float] = None
     status: str
     generated_at: datetime
+    matches: List[ComponentMatchResponse] = []
 
     class Config:
         from_attributes = True

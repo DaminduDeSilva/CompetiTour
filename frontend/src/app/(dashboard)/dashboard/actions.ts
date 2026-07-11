@@ -132,7 +132,7 @@ export async function updateDashboardPackage(id: string, payload: any) {
   }
 }
 
-export async function runPackageAudit(packageId: number, sourceMarkets: string[] = ["DE"]) {
+export async function runPackageAudit(packageId: number, sourceMarkets: string[] = ["DE"], componentIds?: number[]) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
   const { data: { session } } = await supabase.auth.getSession()
@@ -148,7 +148,10 @@ export async function runPackageAudit(packageId: number, sourceMarkets: string[]
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`
       },
-      body: JSON.stringify({ source_markets: sourceMarkets })
+      body: JSON.stringify({ 
+        source_markets: sourceMarkets,
+        component_ids: componentIds
+      })
     })
 
     if (!res.ok) {

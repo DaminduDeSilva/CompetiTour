@@ -60,22 +60,42 @@ class ItineraryMatcher:
             return {"matched_hotel": best_match, "confidence": confidence}
         return {"matched_hotel": None, "confidence": 0.0}
 
-    def match_hotels(self, dmc_hotel: str, ota_hotels: list[str]) -> dict:
+    def match_hotels(self, dmc_hotel: str, ota_hotels: list[str], component_type: str = "hotel", meta_data: dict = None) -> dict:
         """Determines if the DMC hotel exists in the list of OTA hotels using semantic AI reasoning."""
         if not self.client:
             logger.info("Gemini client not configured. Running fallback match.")
             return self._fallback_match(dmc_hotel, ota_hotels)
             
-        prompt = f"""
-        You are an expert travel agent. I will give you a hotel name from a Destination Management Company (DMC) and a list of hotels scraped from an Online Travel Agency (OTA).
-        Determine if any hotel in the OTA list is the EXACT same property as the DMC hotel, even if the spelling, localization, or naming convention is slightly different.
-        
-        DMC Hotel: {dmc_hotel}
-        OTA Hotels: {json.dumps(ota_hotels)}
-        
-        Return ONLY a valid JSON object with the following exact schema:
-        {{"matched_hotel": "name of hotel from OTA list or null if no match", "confidence": 100}}
-        """
+        meta_str = json.dumps(meta_data) if meta_data else "{}"
+
+        if component_type == "excursion":
+            prompt = f"""
+            You are an expert travel agent. I will give you an excursion/tour name and metadata from a Destination Management Company (DMC), and a list of excursions scraped from an OTA like Viator.
+            Determine if any excursion in the OTA list is the SAME service as the DMC excursion.
+            Also, classify the 'match_tier':
+            - 'exact': It is the exact same service tier (e.g. both are private, or both are shared, same duration).
+            - 'alternative': It is a similar excursion but a different service tier (e.g. private vs shared, bus vs train, different duration).
+            - 'unmatched': No match found.
+            
+            DMC Excursion Name: {dmc_hotel}
+            DMC Metadata: {meta_str}
+            OTA Excursions: {json.dumps(ota_hotels)}
+            
+            Return ONLY a valid JSON object with the following exact schema:
+            {{"matched_hotel": "name of excursion from OTA list or null if no match", "confidence": 100, "match_tier": "exact" | "alternative" | "unmatched"}}
+            """
+        else:
+            prompt = f"""
+            You are an expert travel agent. I will give you a hotel name and metadata from a Destination Management Company (DMC), and a list of hotels scraped from an Online Travel Agency (OTA).
+            Determine if any hotel in the OTA list is the EXACT same property as the DMC hotel, even if the spelling, localization, or naming convention is slightly different.
+            
+            DMC Hotel Name: {dmc_hotel}
+            DMC Metadata: {meta_str}
+            OTA Hotels: {json.dumps(ota_hotels)}
+            
+            Return ONLY a valid JSON object with the following exact schema:
+            {{"matched_hotel": "name of hotel from OTA list or null if no match", "confidence": 100, "match_tier": "exact"}}
+            """
         
         try:
             response = self.client.models.generate_content(

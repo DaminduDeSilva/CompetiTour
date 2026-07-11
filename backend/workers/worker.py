@@ -3,8 +3,9 @@
 import asyncio
 from arq import worker
 from arq.connections import RedisSettings
+from arq.cron import cron
 from app.config import get_settings
-from workers.tasks.audit_task import audit_package
+from workers.tasks.audit_task import audit_package, update_exchange_rates_cron
 
 settings = get_settings()
 
@@ -20,6 +21,9 @@ async def shutdown(ctx):
 
 class WorkerSettings:
     functions = [audit_package]
+    cron_jobs = [
+        cron(update_exchange_rates_cron, hour=0, minute=0)
+    ]
     redis_settings = REDIS_SETTINGS
     on_startup = startup
     on_shutdown = shutdown

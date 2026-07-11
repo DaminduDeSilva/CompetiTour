@@ -32,7 +32,7 @@ class ScraperBrowser:
         
         context = await self.browser.new_context(
             viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
         )
         
         # Apply stealth to browser context
@@ -40,15 +40,6 @@ class ScraperBrowser:
         await stealth_evasion.apply_stealth_async(context)
         
         page = await context.new_page()
-        
-        async def handle_route(route):
-            if route.request.resource_type in ["image", "media", "font", "stylesheet"]:
-                await route.abort()
-            else:
-                await route.continue_()
-                
-        # Block images and fonts to speed up slow residential proxies
-        await page.route("**/*", handle_route)
         
         return page
 

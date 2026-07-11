@@ -16,11 +16,12 @@ from app.schemas.job import AnalysisJobResponse
 from workers.tasks.audit_task import run_audit
 import asyncio
 
-async def run_multi_audit_parallel(package_id: int, source_markets: List[str], job_id: str):
+async def run_multi_audit_parallel(package_id: int, source_markets: List[str], job_id: str, component_ids: Optional[List[int]] = None):
     """Runs multiple market audits in parallel to maximize proxy throughput."""
+    markets_to_run = source_markets if source_markets else ["DE"]
     tasks = [
-        run_audit(package_id=package_id, source_market=market, job_id=job_id)
-        for market in source_markets
+        run_audit(package_id=package_id, source_market=market, job_id=job_id, component_ids=component_ids)
+        for market in markets_to_run
     ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for i, result in enumerate(results):
@@ -45,6 +46,7 @@ async def run_multi_audit_parallel(package_id: int, source_markets: List[str], j
 
 class AuditRequest(BaseModel):
     source_markets: List[str]
+    component_ids: Optional[List[int]] = None
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -98,7 +100,7 @@ async def trigger_package_audit(
     logger.info(f"Queueing pricing audits for package {package.id} ('{package.name}') in markets {request.source_markets} with Job ID {job.id}")
     
     # Run in parallel since residential proxies are isolated per market
-    background_tasks.add_task(run_multi_audit_parallel, package_id=package.id, source_markets=request.source_markets, job_id=str(job.id))
+    background_tasks.add_task(run_multi_audit_parallel, package_id=package.id, source_markets=request.source_markets, job_id=str(job.id), component_ids=request.component_ids)
     
     return job
 

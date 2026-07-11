@@ -47,7 +47,9 @@ async def create_package(
             component_type=comp.component_type,
             name=comp.name,
             nights_or_duration=comp.nights_or_duration,
-            base_price_lkr=comp.base_price_lkr
+            base_price_lkr=comp.base_price_lkr,
+            notes=comp.notes,
+            meta_data=comp.meta_data
         )
         db.add(new_comp)
         
@@ -163,7 +165,8 @@ async def update_package(
                     location=comp_data.get("location"),
                     nights_or_duration=comp_data.get("nights_or_duration"),
                     base_price_lkr=comp_data["base_price_lkr"],
-                    notes=comp_data.get("notes")
+                    notes=comp_data.get("notes"),
+                    meta_data=comp_data.get("meta_data")
                 )
                 db.add(new_comp)
                 

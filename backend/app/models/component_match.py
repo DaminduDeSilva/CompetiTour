@@ -10,10 +10,12 @@ class ComponentMatch(Base):
     __tablename__ = "component_matches"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    report_id = Column(Integer, ForeignKey("competitiveness_reports.id", ondelete="CASCADE"), nullable=True)
     package_component_id = Column(Integer, ForeignKey("package_components.id", ondelete="CASCADE"))
     ota_listing_id = Column(Integer, ForeignKey("ota_listings.id"))
     confidence = Column(Numeric(5, 2))                      # 0-100
     match_method = Column(String)                           # 'embedding' | 'llm_verified' | 'manual'
+    match_tier = Column(String, default="exact")            # 'exact' | 'alternative' | 'unmatched'
     reviewed = Column(Boolean, default=False)
 
     # Relationships
