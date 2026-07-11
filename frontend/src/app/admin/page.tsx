@@ -3,14 +3,18 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AdminPageWrapper from "@/components/layout/AdminPageWrapper";
-import { Users, Network, Cpu, Globe, Activity, Check, Clock, X, LogOut } from "lucide-react";
-import { fetchUsersAdmin, approveUserAdmin, adminSignOut } from "./actions";
+import { Users, Check, Clock, X, LogOut } from "lucide-react";
+import { fetchUsersAdmin, approveUserAdmin, deactivateUserAdmin, adminSignOut } from "./actions";
 
 type User = {
   id: string;
   email: string;
   full_name: string | null;
+  company_name: string | null;
   is_active: boolean;
+  is_superuser: boolean;
+  subscription_tier: string | null;
+  audits_used: number | null;
   created_at: string;
 };
 
@@ -23,7 +27,6 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetchUsersAdmin();
       if (res.error) {
-        // If unauthorized, redirect to login
         router.push('/admin/login?error=Session expired or unauthorized');
         return;
       }
@@ -50,16 +53,27 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Calculate dynamic metrics
-  const totalDMCs = users.length;
-  const activeDMCs = users.filter(u => u.is_active).length;
-  const pendingDMCs = users.filter(u => !u.is_active).length;
+  const handleDeactivate = async (id: string) => {
+    try {
+      const res = await deactivateUserAdmin(id);
+      if (res.success) {
+        setUsers(users.map(u => u.id === id ? { ...u, is_active: false } : u));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Dynamic metrics from real data — no hardcoding
+  const nonAdminUsers = users.filter(u => !u.is_superuser);
+  const totalDMCs = nonAdminUsers.length;
+  const activeDMCs = nonAdminUsers.filter(u => u.is_active).length;
+  const pendingDMCs = nonAdminUsers.filter(u => !u.is_active).length;
 
   const metrics = [
-    { label: "Registered DMCs", value: totalDMCs.toString(), sub: "Total signups", icon: Users, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
+    { label: "Registered DMCs", value: totalDMCs.toString(), sub: "Total signups (excl. admins)", icon: Users, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
     { label: "Active Tenants", value: activeDMCs.toString(), sub: "Approved for access", icon: Check, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
-    { label: "Pending Approvals", value: pendingDMCs.toString(), sub: "Waiting verification", icon: Clock, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
-    { label: "Platform Health", value: "Optimal", sub: "API & Proxies connected", icon: Activity, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+    { label: "Pending Approvals", value: pendingDMCs.toString(), sub: "Awaiting verification", icon: Clock, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
   ];
 
   return (
@@ -78,13 +92,10 @@ export default function AdminDashboardPage() {
             </button>
           </form>
         </div>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-          <Activity size={12} className="animate-pulse" /> All Systems Operational
-        </span>
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {metrics.map((m, i) => {
           const Icon = m.icon;
           return (
@@ -96,9 +107,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-black text-white">
-                  {i === 0 ? users.filter(u => u.is_active).length : m.value}
-                </div>
+                <div className="text-3xl font-black text-white">{m.value}</div>
                 <div className="text-xs text-gray-300 mt-1">{m.sub}</div>
               </div>
             </div>
@@ -117,6 +126,7 @@ export default function AdminDashboardPage() {
               <thead>
                 <tr className="border-b border-zinc-900 text-xs text-gray-500 uppercase tracking-wider font-bold">
                   <th className="pb-3">Company / Email</th>
+                  <th className="pb-3">Plan</th>
                   <th className="pb-3">Registration Date</th>
                   <th className="pb-3">Status</th>
                   <th className="pb-3 text-right">Action</th>
@@ -125,20 +135,25 @@ export default function AdminDashboardPage() {
               <tbody className="divide-y divide-zinc-900 text-sm">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-gray-500">Loading user registry...</td>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">Loading user registry...</td>
                   </tr>
-                ) : users.length === 0 ? (
+                ) : nonAdminUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-gray-500">No users found.</td>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">No DMC users found.</td>
                   </tr>
                 ) : (
-                  users.map((user) => (
+                  nonAdminUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-zinc-900/20 transition-colors group">
                       <td className="py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-white">{user.full_name || user.email.split('@')[0]}</span>
+                          <span className="font-bold text-white">{user.company_name || user.full_name || user.email.split('@')[0]}</span>
                           <span className="text-xs text-gray-400 mt-0.5">{user.email}</span>
                         </div>
+                      </td>
+                      <td className="py-4">
+                        <span className="text-xs font-bold text-gray-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
+                          {user.subscription_tier || "Free Trial"}
+                        </span>
                       </td>
                       <td className="py-4 text-gray-400 text-xs">
                         {new Date(user.created_at).toLocaleDateString()}
@@ -155,8 +170,8 @@ export default function AdminDashboardPage() {
                         )}
                       </td>
                       <td className="py-4 text-right">
-                        {!user.is_active && (
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {!user.is_active && (
                             <button 
                               onClick={() => handleApprove(user.id)}
                               className="p-1.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors"
@@ -164,14 +179,15 @@ export default function AdminDashboardPage() {
                             >
                               <Check size={14} />
                             </button>
-                            <button 
-                              className="p-1.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
-                              title="Reject Tenant"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        )}
+                          )}
+                          <button 
+                            onClick={() => handleDeactivate(user.id)}
+                            className="p-1.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
+                            title={user.is_active ? "Deactivate Tenant" : "Reject Tenant"}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -186,9 +202,16 @@ export default function AdminDashboardPage() {
           <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-3">
             <h3 className="text-sm font-bold text-white">Pending Queue</h3>
             <p className="text-xs text-gray-400">
-              There are {users.filter(u => !u.is_active).length} DMC accounts waiting for verification. Ensure you verify their organizational legitimacy before allocating proxy limits.
+              {pendingDMCs > 0 
+                ? `There are ${pendingDMCs} DMC accounts waiting for verification. Ensure you verify their organizational legitimacy before allocating proxy limits.`
+                : "All DMC accounts have been verified. No pending approvals."
+              }
             </p>
           </div>
+          <Link href="/admin/tenants" className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-3 hover:border-zinc-700 transition-colors">
+            <h3 className="text-sm font-bold text-white">Tenant Management →</h3>
+            <p className="text-xs text-gray-400">View detailed tenant profiles, update plans, and manage account settings.</p>
+          </Link>
         </div>
       </div>
     </AdminPageWrapper>

@@ -50,7 +50,14 @@ export default function ProxyManagementPage() {
         )}
       </div>
 
-      {/* Master Credentials */}
+      {/* Coming Soon Banner */}
+      <div className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex items-start gap-3">
+        <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-xs font-bold text-white">Feature in Development</p>
+          <p className="text-xs text-gray-400 mt-0.5">Proxy pool management APIs are not yet implemented. Configuration shown below is local state only — changes will not persist until the backend endpoint is deployed.</p>
+        </div>
+      </div>
       <form onSubmit={handleSave}>
         <div className="p-6 rounded-2xl border border-red-500/20 bg-red-500/5 backdrop-blur-md flex flex-col gap-6">
           <div className="flex items-center justify-between">

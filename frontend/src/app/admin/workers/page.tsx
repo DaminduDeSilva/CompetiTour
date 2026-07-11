@@ -55,7 +55,14 @@ export default function WorkersPage() {
         </button>
       </div>
 
-      {/* Worker Grid */}
+      {/* Coming Soon Banner */}
+      <div className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex items-start gap-3">
+        <XCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-xs font-bold text-white">Feature in Development</p>
+          <p className="text-xs text-gray-400 mt-0.5">Worker monitoring and job queue APIs are not yet implemented. This page will display live worker status and active job queues once the backend infrastructure endpoints are deployed.</p>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {workers.map((w) => {
           const sc = workerStatusConfig[w.status];

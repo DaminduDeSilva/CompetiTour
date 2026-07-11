@@ -1,83 +1,73 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import AdminPageWrapper from "@/components/layout/AdminPageWrapper";
-import { ArrowLeft, ShieldCheck, ShieldOff, Users, FolderHeart, BarChart3, Save, CheckCircle } from "lucide-react";
+import { ArrowLeft, Users, Save, CheckCircle, BarChart3 } from "lucide-react";
+import { fetchUserAdmin, updateUserAdmin } from "../../actions";
 
-// TODO(backend): Fetch from GET /admin/tenants/{id}
-const tenantData: Record<string, {
-  id: string; name: string; email: string; plan: string; status: string;
-  contactName: string; phone: string; joined: string;
-  packages: number; audits: number; markets: string[]; lastActive: string;
-  proxySubuser: string; marketZone: string; monthlyAudits: number; maxAudits: number;
-  recentAudits: { pkg: string; market: string; variance: string; status: string; date: string }[];
-}> = {
-  "t-001": {
-    id: "t-001", name: "Horizon DMC", email: "ops@horizondmc.lk", plan: "Standard",
-    status: "active", contactName: "Tharanga De Silva", phone: "+94 77 234 5678",
-    joined: "March 15, 2026", packages: 5, audits: 23, markets: ["DE","GB","AU"],
-    lastActive: "Just now", proxySubuser: "zt-sub-horizondmc", marketZone: "EU West",
-    monthlyAudits: 23, maxAudits: 50,
-    recentAudits: [
-      { pkg: "Adventure & Wildlife Safari", market: "🇩🇪 Germany", variance: "-20.5%", status: "leakage", date: "June 21" },
-      { pkg: "Cultural Triangle & Beach", market: "🇩🇪 Germany", variance: "+3.2%", status: "at_risk", date: "June 20" },
-      { pkg: "Classic Sri Lanka Tour", market: "🇬🇧 UK", variance: "+3.0%", status: "at_risk", date: "June 20" },
-    ],
-  },
-  "t-002": {
-    id: "t-002", name: "Jetwing Travels", email: "tech@jetwing.net", plan: "Enterprise",
-    status: "active", contactName: "Suresh Wickramanayake", phone: "+94 11 234 5678",
-    joined: "January 10, 2026", packages: 12, audits: 87, markets: ["DE","GB","FR","AU"],
-    lastActive: "2h ago", proxySubuser: "zt-sub-jetwing", marketZone: "EU + APAC",
-    monthlyAudits: 87, maxAudits: 200,
-    recentAudits: [
-      { pkg: "Jetwing Surf Experience", market: "🇩🇪 Germany", variance: "-8.1%", status: "competitive", date: "June 21" },
-      { pkg: "Cultural Heritage Tour", market: "🇫🇷 France", variance: "-14.2%", status: "leakage", date: "June 19" },
-    ],
-  },
-  "t-003": {
-    id: "t-003", name: "Walkers Tours", email: "pricing@walkers.lk", plan: "Enterprise",
-    status: "active", contactName: "Kavinda Edirisinghe", phone: "+94 11 345 6789",
-    joined: "February 5, 2026", packages: 8, audits: 41, markets: ["DE","JP"],
-    lastActive: "1d ago", proxySubuser: "zt-sub-walkers", marketZone: "EU + APAC",
-    monthlyAudits: 41, maxAudits: 200,
-    recentAudits: [
-      { pkg: "Japan & Sri Lanka Twin", market: "🇯🇵 Japan", variance: "-11.3%", status: "leakage", date: "June 20" },
-    ],
-  },
-  "t-004": {
-    id: "t-004", name: "Cinnamon Holidays", email: "ops@cinnamonholidays.com", plan: "Standard",
-    status: "suspended", contactName: "Priya Jayasinghe", phone: "+94 77 890 1234",
-    joined: "May 1, 2026", packages: 3, audits: 6, markets: ["GB"],
-    lastActive: "7d ago", proxySubuser: "zt-sub-cinnamon", marketZone: "EU West",
-    monthlyAudits: 6, maxAudits: 50,
-    recentAudits: [],
-  },
-};
-
-const statusVariantColor: Record<string, string> = {
-  leakage: "text-blue-400",
-  at_risk: "text-yellow-400",
-  competitive: "text-emerald-400",
+type UserDetail = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  company_name: string | null;
+  is_active: boolean;
+  is_superuser: boolean;
+  subscription_tier: string | null;
+  audits_used: number | null;
+  created_at: string;
+  updated_at: string | null;
 };
 
 export default function TenantDetailPage() {
   const params = useParams();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id ?? "t-001";
-  const t = tenantData[id] ?? tenantData["t-001"];
+  const router = useRouter();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id ?? "";
 
-  const [plan, setPlan] = useState(t.plan);
-  const [status, setStatus] = useState(t.status);
+  const [user, setUser] = useState<UserDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState("");
+  const [status, setStatus] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // TODO(backend): PATCH /admin/tenants/{id} — update plan/status
-  const handleSave = () => {
+  useEffect(() => {
+    async function load() {
+      const res = await fetchUserAdmin(id);
+      if (res.error || !res.user) {
+        router.push('/admin/tenants');
+        return;
+      }
+      setUser(res.user);
+      setPlan(res.user.subscription_tier || "Free Trial");
+      setStatus(res.user.is_active ? "active" : "pending");
+      setLoading(false);
+    }
+    load();
+  }, [id]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    const res = await updateUserAdmin(user.id, {
+      subscription_tier: plan,
+      is_active: status === "active",
+    });
+    if (res.success && res.user) {
+      setUser(res.user);
+    }
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const usagePct = Math.round((t.monthlyAudits / t.maxAudits) * 100);
+  if (loading || !user) {
+    return (
+      <AdminPageWrapper>
+        <div className="flex items-center justify-center py-20 text-gray-500 text-sm">Loading tenant details...</div>
+      </AdminPageWrapper>
+    );
+  }
 
   return (
     <AdminPageWrapper>
@@ -91,9 +81,9 @@ export default function TenantDetailPage() {
               <CheckCircle size={13} /> Saved
             </span>
           )}
-          <button onClick={handleSave}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-xs font-bold text-white transition-colors cursor-pointer">
-            <Save size={13} /> Save Changes
+          <button onClick={handleSave} disabled={saving}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-xs font-bold text-white transition-colors cursor-pointer disabled:opacity-50">
+            <Save size={13} /> {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
@@ -104,9 +94,9 @@ export default function TenantDetailPage() {
           <Users size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">{t.name}</h2>
-          <p className="text-xs text-gray-300 mt-0.5">{t.email} · {t.contactName} · {t.phone}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">Joined {t.joined}</p>
+          <h2 className="text-xl font-bold text-white">{user.company_name || user.full_name || user.email.split("@")[0]}</h2>
+          <p className="text-xs text-gray-300 mt-0.5">{user.email}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Joined {new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
       </div>
 
@@ -118,87 +108,79 @@ export default function TenantDetailPage() {
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-400">Plan Tier</label>
-                {/* TODO(backend): changing plan updates tenant billing limits */}
                 <select value={plan} onChange={(e) => setPlan(e.target.value)}
                   className="px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs text-white focus:border-red-500 focus:outline-none appearance-none">
-                  <option value="Standard">Standard (50 audits/mo)</option>
-                  <option value="Enterprise">Enterprise (200 audits/mo)</option>
+                  <option value="Free Trial">Free Trial (3 audits/mo)</option>
+                  <option value="Starter">Starter (10 audits/mo)</option>
+                  <option value="Professional">Professional (50 audits/mo)</option>
+                  <option value="Enterprise">Enterprise (Unlimited)</option>
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-400">Account Status</label>
-                {/* TODO(backend): suspend/reactivate writes to tenants.status in DB */}
                 <select value={status} onChange={(e) => setStatus(e.target.value)}
                   className="px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs text-white focus:border-red-500 focus:outline-none appearance-none">
                   <option value="active">Active</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="pending">Pending / Suspended</option>
                 </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-400">Proxy Sub-user (read-only)</label>
-                <input type="text" value={t.proxySubuser} disabled
-                  className="px-4 py-2.5 rounded-xl border border-zinc-900 bg-zinc-950 text-xs text-gray-300 cursor-not-allowed" />
               </div>
             </div>
           </div>
 
           {/* Usage */}
           <div className="p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-white">Monthly Usage</h3>
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-300">Audits this month</span>
-                <span className="text-white font-bold">{t.monthlyAudits} / {t.maxAudits}</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-zinc-900">
-                <div className={`h-2 rounded-full transition-all ${usagePct > 80 ? "bg-red-500" : "bg-sky-500"}`}
-                  style={{ width: `${usagePct}%` }} />
-              </div>
-              <p className="text-[10px] text-gray-400">{usagePct}% of plan limit used</p>
-            </div>
+            <h3 className="text-sm font-bold text-white">Usage Summary</h3>
             <div className="flex flex-col gap-2 text-xs">
-              {[
-                { label: "Packages", value: t.packages, icon: <FolderHeart size={12} /> },
-                { label: "Total Audit Runs", value: t.audits, icon: <BarChart3 size={12} /> },
-              ].map((s) => (
-                <div key={s.label} className="flex justify-between items-center">
-                  <span className="flex items-center gap-1.5 text-gray-300">{s.icon}{s.label}</span>
-                  <span className="font-bold text-white">{s.value}</span>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5 text-gray-300"><BarChart3 size={12} /> Audits Used</span>
+                <span className="font-bold text-white">{user.audits_used ?? 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300">Current Plan</span>
+                <span className="font-bold text-white">{user.subscription_tier || "Free Trial"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300">Account Status</span>
+                <span className={`font-bold ${user.is_active ? "text-emerald-400" : "text-amber-400"}`}>
+                  {user.is_active ? "Active" : "Pending"}
+                </span>
+              </div>
+              {user.updated_at && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">Last Updated</span>
+                  <span className="text-gray-400">{new Date(user.updated_at).toLocaleDateString()}</span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right: Recent audits */}
+        {/* Right: Account info */}
         <div className="lg:col-span-2 p-6 rounded-2xl border border-zinc-900 bg-zinc-950/40 backdrop-blur-md flex flex-col gap-4">
-          <h3 className="text-sm font-bold text-white">Recent Audit Runs</h3>
-          {t.recentAudits.length > 0 ? (
-            <div className="flex flex-col divide-y divide-zinc-900">
-              {t.recentAudits.map((a, i) => (
-                <div key={i} className="py-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{a.pkg}</p>
-                    <p className="text-xs text-gray-300 mt-0.5">{a.market} · {a.date}</p>
-                  </div>
-                  <span className={`text-sm font-black ${statusVariantColor[a.status]}`}>{a.variance}</span>
-                </div>
-              ))}
+          <h3 className="text-sm font-bold text-white">Account Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Email</label>
+              <p className="text-sm text-white">{user.email}</p>
             </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center py-12 text-gray-400 text-sm">
-              No audit runs yet for this tenant.
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Full Name</label>
+              <p className="text-sm text-white">{user.full_name || "—"}</p>
             </div>
-          )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Company</label>
+              <p className="text-sm text-white">{user.company_name || "—"}</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">User ID</label>
+              <p className="text-sm text-gray-400 font-mono text-[11px]">{user.id}</p>
+            </div>
+          </div>
 
-          {/* Markets */}
           <div className="pt-4 border-t border-zinc-900">
-            <p className="text-xs text-gray-300 font-semibold uppercase tracking-wider mb-2">Active Source Markets</p>
-            <div className="flex gap-2">
-              {t.markets.map((m) => (
-                <span key={m} className="px-3 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold">{m}</span>
-              ))}
-            </div>
+            <p className="text-xs text-gray-400">
+              Changes to plan tier and account status will take effect immediately. The user&apos;s billing page and quota enforcement will reflect the updated plan on their next page load.
+            </p>
           </div>
         </div>
       </div>

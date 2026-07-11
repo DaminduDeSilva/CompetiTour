@@ -56,6 +56,15 @@ export default function OtaConfigPage() {
         </div>
       </div>
 
+      {/* Coming Soon Banner */}
+      <div className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex items-start gap-3">
+        <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-xs font-bold text-white">Feature in Development</p>
+          <p className="text-xs text-gray-400 mt-0.5">OTA platform registry and parser management APIs are not yet implemented. This page will be functional once the backend endpoints are deployed.</p>
+        </div>
+      </div>
+
       {/* Platform Cards */}
       <div className="flex flex-col gap-4">
         {platforms.map((p) => {

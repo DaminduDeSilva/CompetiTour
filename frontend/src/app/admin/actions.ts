@@ -60,21 +60,23 @@ export async function adminSignOut() {
   redirect('/admin/login')
 }
 
-// Data fetching actions for the Admin Dashboard
-export async function fetchUsersAdmin() {
+// ---------- Helper to get admin session token ----------
+async function getAdminToken() {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
   const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token || null
+}
 
-  if (!session?.access_token) {
-    return { error: 'Not authorized' }
-  }
+// ---------- Data fetching actions ----------
+
+export async function fetchUsersAdmin() {
+  const token = await getAdminToken()
+  if (!token) return { error: 'Not authorized' }
 
   try {
     const res = await fetch(`${API_URL}/api/v1/users/`, {
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`
-      },
+      headers: { 'Authorization': `Bearer ${token}` },
       cache: 'no-store'
     })
 
@@ -91,27 +93,93 @@ export async function fetchUsersAdmin() {
   }
 }
 
-export async function approveUserAdmin(userId: string) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
-  const { data: { session } } = await supabase.auth.getSession()
+export async function fetchUserAdmin(userId: string) {
+  const token = await getAdminToken()
+  if (!token) return { error: 'Not authorized', user: null }
 
-  if (!session?.access_token) return { error: 'Not authorized' }
+  try {
+    const res = await fetch(`${API_URL}/api/v1/users/${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-store'
+    })
+
+    if (!res.ok) {
+      if (res.status === 404) return { error: 'User not found', user: null }
+      throw new Error('Failed to fetch user')
+    }
+
+    const data = await res.json()
+    return { user: data }
+  } catch (error: any) {
+    console.error("Admin fetch user error:", error)
+    return { error: error.message, user: null }
+  }
+}
+
+export async function approveUserAdmin(userId: string) {
+  const token = await getAdminToken()
+  if (!token) return { error: 'Not authorized' }
 
   try {
     const res = await fetch(`${API_URL}/api/v1/users/${userId}/approve`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     })
 
-    if (!res.ok) {
-      throw new Error('Failed to approve user')
-    }
+    if (!res.ok) throw new Error('Failed to approve user')
 
     revalidatePath('/admin')
     return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function deactivateUserAdmin(userId: string) {
+  const token = await getAdminToken()
+  if (!token) return { error: 'Not authorized' }
+
+  try {
+    const res = await fetch(`${API_URL}/api/v1/users/${userId}/deactivate`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    if (!res.ok) throw new Error('Failed to deactivate user')
+
+    revalidatePath('/admin')
+    revalidatePath('/admin/tenants')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function updateUserAdmin(userId: string, payload: {
+  subscription_tier?: string;
+  is_active?: boolean;
+  company_name?: string;
+  full_name?: string;
+}) {
+  const token = await getAdminToken()
+  if (!token) return { error: 'Not authorized' }
+
+  try {
+    const res = await fetch(`${API_URL}/api/v1/users/${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!res.ok) throw new Error('Failed to update user')
+
+    const data = await res.json()
+    revalidatePath('/admin')
+    revalidatePath('/admin/tenants')
+    return { success: true, user: data }
   } catch (error: any) {
     return { error: error.message }
   }
