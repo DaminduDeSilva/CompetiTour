@@ -65,26 +65,26 @@ export default function ProxyManagementPage() {
               <Shield size={16} className="text-red-400" />
               <h3 className="text-sm font-bold text-white">Master Torch Labs Gateway Credentials</h3>
             </div>
-            <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">
+            {/* <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">
               Admin Only — Not Visible to DMC Subscribers
-            </span>
+            </span> */}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-400">Gateway Host</label>
               {/* TODO(backend): this value comes from proxy_config table, row 1 */}
-              <input type="text" value={config.gatewayHost} onChange={(e) => setConfig({...config, gatewayHost: e.target.value})}
+              <input type="text" value={config.gatewayHost} onChange={(e) => setConfig({ ...config, gatewayHost: e.target.value })}
                 className="px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs text-white focus:border-red-500 focus:outline-none" />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-400">Gateway Port</label>
-              <input type="text" value={config.gatewayPort} onChange={(e) => setConfig({...config, gatewayPort: e.target.value})}
+              <input type="text" value={config.gatewayPort} onChange={(e) => setConfig({ ...config, gatewayPort: e.target.value })}
                 className="px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs text-white focus:border-red-500 focus:outline-none" />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-400">Master Account User</label>
-              <input type="text" value={config.masterUser} onChange={(e) => setConfig({...config, masterUser: e.target.value})}
+              <input type="text" value={config.masterUser} onChange={(e) => setConfig({ ...config, masterUser: e.target.value })}
                 className="px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs text-white focus:border-red-500 focus:outline-none" />
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function ProxyManagementPage() {
             <label className="text-xs font-semibold text-gray-400">Master Auth Password</label>
             <div className="relative">
               <input type={showPass ? "text" : "password"} value={config.masterPass}
-                onChange={(e) => setConfig({...config, masterPass: e.target.value})}
+                onChange={(e) => setConfig({ ...config, masterPass: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs text-white focus:border-red-500 focus:outline-none pr-20" />
               <button type="button" onClick={() => setShowPass(!showPass)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-300 hover:text-white font-bold transition-colors cursor-pointer">
@@ -112,7 +112,7 @@ export default function ProxyManagementPage() {
               <div key={f.key} className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-400">{f.label}</label>
                 <div className="relative">
-                  <input type="number" value={config[f.key]} onChange={(e) => setConfig({...config, [f.key]: Number(e.target.value)})}
+                  <input type="number" value={config[f.key]} onChange={(e) => setConfig({ ...config, [f.key]: Number(e.target.value) })}
                     className="w-full px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-xs text-white focus:border-red-500 focus:outline-none pr-10" />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">{f.unit}</span>
                 </div>
@@ -164,15 +164,13 @@ export default function ProxyManagementPage() {
                   <td className="px-4 py-3 font-semibold text-white">{s.tenant}</td>
                   <td className="px-4 py-3 text-gray-300">{s.zone}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                      s.type === "Residential" ? "text-purple-400 bg-purple-500/10 border-purple-500/20" : "text-amber-400 bg-amber-500/10 border-amber-500/20"
-                    }`}>{s.type}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${s.type === "Residential" ? "text-purple-400 bg-purple-500/10 border-purple-500/20" : "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                      }`}>{s.type}</span>
                   </td>
                   <td className="px-4 py-3 font-mono text-[11px] text-gray-400">{s.ip}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                      s.status === "active" ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"
-                    }`}>{s.status}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${s.status === "active" ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"
+                      }`}>{s.status}</span>
                   </td>
                   <td className={`px-4 py-3 font-bold ${s.successRate >= 97 ? "text-emerald-400" : s.successRate > 0 ? "text-yellow-400" : "text-gray-400"}`}>
                     {s.successRate > 0 ? `${s.successRate}%` : "—"}
