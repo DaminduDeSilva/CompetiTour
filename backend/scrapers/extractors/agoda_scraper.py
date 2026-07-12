@@ -100,15 +100,74 @@ class AgodaScraper:
             f"&cid=-218&currency=USD"
         )
 
-    def _parse_price(self, price_text: str) -> Optional[float]:
+    def _parse_price(self, price_text: str, currency: Optional[str] = None) -> Optional[float]:
         """Extracts a numeric float from Agoda price text."""
-        cleaned = re.sub(r"[$$£¥₩,\s]", "", price_text)
-        cleaned = re.sub(r"[A-Z]{2,}", "", cleaned).strip()
+        if not price_text:
+            return None
+
+        # Detect currency from string
+        detected_currency = currency
+        if "£" in price_text or "GBP" in price_text:
+            detected_currency = "GBP"
+        elif "A$" in price_text or "AUD" in price_text:
+            detected_currency = "AUD"
+        elif "$" in price_text or "USD" in price_text:
+            detected_currency = "USD"
+        elif "€" in price_text or "EUR" in price_text:
+            detected_currency = "EUR"
+        elif any(c in price_text for c in ["¥", "￥", "円", "JPY"]):
+            detected_currency = "JPY"
+
+        # Replace non-breaking spaces with regular spaces
+        cleaned = price_text.replace('\xa0', ' ').strip()
+        # Strip all common currency symbols and spaces (keep dots and commas for separator logic)
+        cleaned = re.sub(r"[$$£¥￥₩€円\s]", "", cleaned)
+        # Remove alphabetical characters (currency codes like USD, EUR, Rs, etc.)
+        cleaned = re.sub(r"[a-zA-Z]+", "", cleaned).strip()
+
+        if not cleaned:
+            return None
+
+        # Determine decimal and thousands separators
+        has_comma = "," in cleaned
+        has_dot = "." in cleaned
+
+        if has_comma and has_dot:
+            comma_idx = cleaned.rfind(",")
+            dot_idx = cleaned.rfind(".")
+            if comma_idx > dot_idx:
+                # Comma is the decimal separator (e.g. 1.074,50)
+                cleaned = cleaned.replace(".", "").replace(",", ".")
+            else:
+                # Dot is the decimal separator (e.g. 1,074.50)
+                cleaned = cleaned.replace(",", "")
+        elif has_comma:
+            # Only comma is present, e.g. 1,074 or 123,45
+            parts = cleaned.split(",")
+            if len(parts[-1]) == 2:
+                # Decimal separator
+                cleaned = "".join(parts[:-1]) + "." + parts[-1]
+            else:
+                # Thousands separator
+                cleaned = cleaned.replace(",", "")
+        elif has_dot:
+            # Only dot is present, e.g. 1.074 or 123.45
+            if detected_currency and detected_currency.upper() == "JPY":
+                # JPY has no decimal part
+                cleaned = cleaned.replace(".", "")
+            else:
+                parts = cleaned.split(".")
+                if len(parts[-1]) == 3:
+                    # Thousands separator, e.g. 1.074
+                    cleaned = cleaned.replace(".", "")
+                # Otherwise, it's a decimal, e.g. 123.45
+
         try:
             return float(cleaned)
         except ValueError:
-            logger.debug(f"Could not parse price from: '{price_text}'")
+            logger.debug(f"Could not parse price from: '{price_text}' (cleaned: '{cleaned}')")
             return None
+
 
     async def scrape(self, destination: str, max_results: int = 15) -> list[AgodaHotelResult]:
         """
